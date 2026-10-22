@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import { FolderIcon, Loader2Icon, RefreshCwIcon } from "@lucide/vue";
+import { FolderIcon, Loader2Icon, RefreshCwIcon, UploadIcon } from "@lucide/vue";
+import { useDropZone } from "@vueuse/core";
+import { toast } from "@codex-gateway/ui/sonner";
 import { TreeRoot } from "reka-ui";
 import { computed, nextTick, ref, useTemplateRef } from "vue";
 import type { RemoteDirectoryEntry } from "~~/shared/types";
@@ -10,6 +12,8 @@ import RemoteFileDeleteDialog from "./RemoteFileDeleteDialog.vue";
 import RemoteFileTreeRow from "./RemoteFileTreeRow.vue";
 import { useRemoteFileTreeActions } from "./useRemoteFileTreeActions";
 import { useRemoteFileTreeReveal } from "./useRemoteFileTreeReveal";
+import { useWorkspaceFileUpload } from "./useWorkspaceFileUpload";
+import { parentPath } from "@/stores/file-workspace/paths";
 
 interface FileTreeNode {
   name: string;
@@ -39,6 +43,54 @@ const fileActions = useRemoteFileTreeActions({
   threadId: () => props.threadId,
 });
 const selected = ref<FileTreeNode>();
+const { t } = useI18n();
+const upload = useWorkspaceFileUpload({
+  hostId: () => props.hostId,
+  threadId: () => props.threadId,
+  rootPath: () => props.rootPath,
+});
+const { input: uploadInput, uploading, destination, results } = upload;
+const treeElement = useTemplateRef<HTMLElement>("treeElement");
+const dropPath = ref<string | null>(null);
+const uploadPath = computed(() =>
+  selected.value?.type === "directory"
+    ? selected.value.path
+    : selected.value
+      ? parentPath(selected.value.path)
+      : props.rootPath,
+);
+useDropZone(treeElement, {
+  checkValidity: (items) => Array.from(items).some((item) => item.kind === "file"),
+  onOver: (_files, event) => {
+    if (uploading.value) return;
+    const row =
+      event.target instanceof Element
+        ? event.target.closest<HTMLElement>("[data-file-path]")
+        : null;
+    const path = row?.dataset.filePath;
+    dropPath.value = path
+      ? row.dataset.fileType === "directory"
+        ? path
+        : parentPath(path)
+      : props.rootPath;
+  },
+  onLeave: () => {
+    dropPath.value = null;
+  },
+  onDrop: (files, event) => {
+    const path = dropPath.value ?? props.rootPath;
+    dropPath.value = null;
+    if (
+      Array.from(event.dataTransfer?.items ?? []).some(
+        (item) => item.webkitGetAsEntry?.()?.isDirectory,
+      )
+    ) {
+      toast.error(t("app.uploadFilesOnly"));
+      return;
+    }
+    void upload.upload(files ?? [], path);
+  },
+});
 const treeViewport = useTemplateRef<HTMLElement>("treeViewport");
 const scope = computed(() => fileWorkspace.scopeFor(props.hostId, props.threadId));
 const activePath = computed(() => scope.value?.activePath ?? null);
@@ -119,6 +171,7 @@ function fileTreeNode(value: unknown) {
 
 <template>
   <section
+    ref="treeElement"
     class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-canvas-soft/45"
     data-testid="remote-file-tree"
   >
@@ -127,6 +180,27 @@ function fileTreeNode(value: unknown) {
       <span class="min-w-0 flex-1 truncate text-sm font-semibold" :title="rootPath">
         {{ rootPath || $t("app.loadingFileTree") }}
       </span>
+      <input
+        v-if="visible"
+        ref="uploadInput"
+        class="hidden"
+        type="file"
+        multiple
+        :aria-label="$t('app.uploadFiles')"
+        @change="upload.picked"
+      />
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        class="shrink-0"
+        :disabled="uploading || !rootPath"
+        :aria-label="$t('app.uploadFiles')"
+        :title="$t('app.uploadFilesTo', { path: uploadPath })"
+        @click="upload.openPicker(uploadPath)"
+      >
+        <Loader2Icon v-if="uploading" class="size-3.5 animate-spin" />
+        <UploadIcon v-else class="size-3.5" />
+      </Button>
       <Button
         variant="ghost"
         size="icon-sm"
@@ -136,6 +210,34 @@ function fileTreeNode(value: unknown) {
       >
         <RefreshCwIcon class="size-3.5" :class="rootDirectory?.loading ? 'animate-spin' : ''" />
       </Button>
+    </div>
+
+    <div
+      v-if="rootPath && !uploading"
+      class="shrink-0 truncate px-3 py-1 text-xs text-ink-muted"
+      :class="dropPath ? 'bg-primary/10 text-primary' : ''"
+      :title="dropPath ?? uploadPath"
+      role="status"
+    >
+      {{ $t(dropPath ? "app.dropFilesTo" : "app.uploadFilesTo", { path: dropPath ?? uploadPath }) }}
+    </div>
+    <div
+      v-if="uploading || results.length"
+      class="max-h-32 shrink-0 overflow-auto border-b border-hairline px-3 py-2 text-xs"
+      role="status"
+      aria-live="polite"
+    >
+      <div v-if="uploading" class="break-all">
+        {{ $t("app.uploadingFilesTo", { path: destination }) }}
+      </div>
+      <div
+        v-for="(result, index) in results"
+        :key="index"
+        class="break-all"
+        :class="result.error ? 'text-destructive' : 'text-ink-muted'"
+      >
+        {{ result.name }}: {{ result.error ?? $t("app.fileUploadSucceeded") }}
+      </div>
     </div>
 
     <div
@@ -176,6 +278,7 @@ function fileTreeNode(value: unknown) {
           :key="item._id"
           :node="fileTreeNode(item.value)"
           :level="item.level"
+          :upload-target="dropPath === fileTreeNode(item.value).path"
           :git-status="gitWorkspace.changeForPath(fileTreeNode(item.value).path)?.status ?? null"
           :descendant-change-count="
             fileTreeNode(item.value).type === 'directory'

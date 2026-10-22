@@ -23,6 +23,13 @@ export interface UploadResult {
   files: UploadedFileRecord[];
 }
 
+export interface WorkspaceUploadResult {
+  files: Array<
+    | { name: string; path: string }
+    | { name: string; error: "remoteFileAlreadyExists" | "remoteFileUploadFailed" }
+  >;
+}
+
 export interface ProjectFileSearchResult {
   files: Array<{
     type: "file";

@@ -100,6 +100,7 @@ export type {
   RemoteDirectoryResult,
   UploadedFileRecord,
   UploadResult,
+  WorkspaceUploadResult,
 } from "./types/files";
 export type {
   ThreadHistoryItem,

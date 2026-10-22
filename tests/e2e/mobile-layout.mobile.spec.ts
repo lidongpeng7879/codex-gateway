@@ -806,6 +806,20 @@ printf '%s\n' '# Mobile File Workspace' 'Rendered from the remote tree.' > ${she
   await page.getByRole("button", { name: "文件树", exact: true }).click();
   const tree = page.getByTestId("remote-file-tree");
   await expect(tree).toBeVisible();
+  const uploadName = "mobile-upload.txt";
+  const chooser = page.waitForEvent("filechooser");
+  await tree.getByRole("button", { name: "上传文件", exact: true }).click();
+  await (
+    await chooser
+  ).setFiles({
+    name: uploadName,
+    mimeType: "text/plain",
+    buffer: Buffer.from("mobile picker upload"),
+  });
+  await expect(tree.locator(`[data-file-path="${rootPath}/${uploadName}"]`)).toBeVisible();
+  expect(
+    (await execRemoteSsh(remote, `cat ${shellQuote(`${rootPath}/${uploadName}`)}`)).stdout,
+  ).toBe("mobile picker upload");
   await page.getByRole("tab", { name: /变更/ }).click();
   await expect(
     page.getByTestId("git-changes-tree").locator(`[data-git-change-path=${JSON.stringify(path)}]`),

@@ -32,6 +32,7 @@ defineProps<{
   level: number;
   gitStatus: RemoteGitFileStatus | null;
   descendantChangeCount: number;
+  uploadTarget: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -55,6 +56,9 @@ const { longPressContextMenuHandlers } = useLongPressContextMenu({ menuWidthEsti
         v-bind="node.type !== 'other' ? longPressContextMenuHandlers : {}"
         :value="node"
         :data-file-path="node.path"
+        :data-file-type="node.type"
+        :data-upload-target="uploadTarget"
+        :class="uploadTarget ? 'bg-primary/15 ring-2 ring-inset ring-primary/50' : ''"
         :level="level"
         @select="node.type === 'file' && emit('open', node.path)"
         class="flex h-8 w-max min-w-full cursor-default items-center gap-1.5 rounded-md pr-2 text-sm text-ink-muted outline-none hover:bg-canvas-soft hover:text-ink focus-visible:ring-2 focus-visible:ring-primary/35 data-selected:bg-primary/10 data-selected:text-ink"
