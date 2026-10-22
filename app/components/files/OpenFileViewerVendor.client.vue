@@ -53,7 +53,7 @@ async function mountViewer(): Promise<void> {
       mimeType: props.mimeType,
       width: "100%",
       height: "100%",
-      fit: "contain",
+      fit: props.mimeType === "application/pdf" ? "width" : "contain",
       toolbar: props.toolbar,
       theme: props.theme,
       locale: props.locale,

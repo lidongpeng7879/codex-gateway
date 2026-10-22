@@ -85,7 +85,7 @@ const viewerLocale = computed(() => (locale.value === "en" ? "en-US" : "zh-CN"))
       :file="file"
       :file-name="document.title"
       :mime-type="document.contentType"
-      :toolbar="{ download: true, fullscreen: true, print: true, search: true }"
+      :toolbar="{ download: true, fullscreen: true, print: true, search: true, zoom: true }"
       :theme="viewerTheme"
       :locale="viewerLocale"
     />
