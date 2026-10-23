@@ -14,10 +14,11 @@ export function subscribeHostMetrics(
   request: Extract<RealtimeClientMessage, { type: "host.metrics.subscribe" }>,
 ) {
   const userId = authenticatedUserId(peer);
-  if (hostStore.get(request.hostId) === null) throw new Error(`Host ${request.hostId} not found`);
+  const host = hostStore.get(request.hostId);
+  if (host === null) throw new Error(`Host ${request.hostId} not found`);
   const subscriptions = stateFor(peer).hostMetricsUnsubscribers;
   replaceSubscription(subscriptions, request.hostId, () =>
-    hostMetricsManager.events.subscribe(userId, request.hostId, (event) => {
+    hostMetricsManager.subscribe(userId, host, (event) => {
       if (event.type === "sample") {
         sendRealtimePeerMessage(peer, {
           type: "host.metrics.sample",

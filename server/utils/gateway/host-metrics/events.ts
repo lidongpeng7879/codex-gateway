@@ -13,7 +13,7 @@ export type HostMetricsEvent =
     }
   | { type: "status"; snapshot: HostMetricsSnapshot };
 
-type HostMetricsListener = (event: HostMetricsEvent) => void;
+export type HostMetricsListener = (event: HostMetricsEvent) => void;
 
 export class HostMetricsEventBus {
   private listeners = new Map<string, Set<HostMetricsListener>>();
@@ -27,6 +27,10 @@ export class HostMetricsEventBus {
       listeners.delete(listener);
       if (listeners.size === 0) this.listeners.delete(key);
     };
+  }
+
+  hasSubscribers(userId: number, hostId: number) {
+    return (this.listeners.get(metricsKey(userId, hostId))?.size ?? 0) > 0;
   }
 
   publish(userId: number, hostId: number, event: HostMetricsEvent) {

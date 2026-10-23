@@ -3,6 +3,7 @@ set -eu
 
 case " $* " in
   *" --query-gpu="*)
+    printf "sample\n" >> /tmp/codex-e2e-host-metrics-samples
     printf '%s\n' '0, GPU-e2e-0000, E2E Training GPU, 73, 7168, 24576, 61'
     ;;
   *" --query-compute-apps="*)
