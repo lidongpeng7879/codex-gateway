@@ -14,12 +14,12 @@ import {
   readUpgradeRemoteEnvs,
   type RemoteCodexEnv,
   type UiHost,
-  resetRemoteAppServer,
   remoteCodexCommand,
   sendTextTurn,
   startRemoteThreadFromProjectMenu,
   stopRemoteFixture,
 } from "./helpers/remote-codex";
+import { prepareManagedDaemon, readDaemonPid } from "./helpers/host-daemon";
 
 test("parses current Codex CLI and app-server user-agent versions", () => {
   expect(parseCodexVersion("codex-cli 0.142.2")?.version).toBe("0.142.2");
@@ -282,56 +282,36 @@ printf 'official standalone layout and staging cleanup verified\\n'
     .toContain("official standalone layout and staging cleanup verified");
 }
 
-test("starts the official managed daemon for an existing socket app-server", async ({
-  page,
-  remoteWorkspace,
-}) => {
-  const { remote } = remoteWorkspace;
+for (const state of ["running", "stopped"] as const) {
+  test(
+    state === "running"
+      ? "attaches to an existing official managed daemon without restarting it"
+      : "starts an officially stopped managed daemon when connecting a host",
+    async ({ page, remoteWorkspace }) => {
+      const { remote } = remoteWorkspace;
+      // Reset the browser's host configuration first. No Gateway lifecycle may race fixture setup.
+      await openApp(page, { interceptRealtime: false });
+      // The verified archive is available even when this test runs alone on an empty-runtime host.
+      // Never kill a newly connected daemon or unlink its live socket/PID/lock files.
+      await prepareManagedDaemon(remote, state);
+      const existingPid = state === "running" ? await readDaemonPid(remote) : null;
+      const { host, project } = await remoteWorkspace.provision({
+        hostName: `managed-daemon-${state}-${Date.now()}`,
+        projectName: `managed-daemon-project-${Date.now()}`,
+      });
+      const connectedPid = await readDaemonPid(remote);
+      if (existingPid !== null) expect(connectedPid).toBe(existingPid);
 
-  await openApp(page);
-  const { host, project } = await remoteWorkspace.provision({
-    hostName: `managed-daemon-codex-${Date.now()}`,
-    projectName: `managed-daemon-project-${Date.now()}`,
-  });
-
-  // Establish a managed installation first. This test can run independently instead of relying
-  // on the upgrade matrix test to install Codex into the shared remote fixture.
-  const codexBin = remoteCodexCommand(remote);
-  await resetRemoteAppServer(remote);
-  await execRemoteSsh(
-    remote,
-    `
-set -eu
-socket="\${CODEX_HOME:-$HOME/.codex}/app-server-control/app-server-control.sock"
-daemon_dir="\${CODEX_HOME:-$HOME/.codex}/app-server-daemon"
-rm -f "$daemon_dir"/app-server.pid "$daemon_dir"/app-server.pid.lock "$daemon_dir"/app-server.stderr.log
-rm -f "$daemon_dir"/daemon.pid "$daemon_dir"/daemon.pid.lock "$daemon_dir"/daemon.stderr.log
-rm -f "$daemon_dir"/daemon-updater.pid "$daemon_dir"/daemon-updater.pid.lock "$daemon_dir"/daemon-updater.stderr.log
-rm -f "$daemon_dir"/loaded-threads.json
-mkdir -p "$daemon_dir"
-# This is the same synchronous official daemon lifecycle command used by Gateway. The browser
-# still drives the scenario; the shell only provisions the real remote app-server process.
-${codexBin} app-server daemon start >"$daemon_dir/e2e-app-server.log" 2>&1
-if [ ! -S "$socket" ]; then
-  echo "socket was not created: $socket"
-  ps -eo pid=,args= | grep 'codex app-server' || true
-  cat "$daemon_dir/e2e-app-server.log" || true
-  exit 1
-fi
-rm -f "$daemon_dir"/app-server.pid "$daemon_dir"/app-server.pid.lock "$daemon_dir"/app-server.stderr.log "$daemon_dir"/loaded-threads.json
-`,
+      const threadId = await remoteWorkspace.startThread(project.remotePath);
+      const marker = `E2E managed daemon ${state} ${Date.now()}`;
+      await sendTextTurn(page, marker, { hostId: host.id, threadId, cwd: remote.projectPath });
+      await expect(page.getByTestId("chat-scroll-area").getByText(marker)).toBeVisible({
+        timeout: 120_000,
+      });
+      await expect(page.getByTestId("send-turn-button")).toHaveAttribute("aria-label", "已完成", {
+        timeout: 120_000,
+      });
+      expect(await readDaemonPid(remote)).toBe(connectedPid);
+    },
   );
-
-  const threadId = await remoteWorkspace.startThread(project.remotePath);
-  const marker = `E2E socket app-server 重启 ${Date.now()}`;
-  await sendTextTurn(page, marker, { hostId: host.id, threadId, cwd: remote.projectPath });
-  await expect(page.getByTestId("chat-scroll-area").getByText(marker)).toBeVisible({
-    timeout: 120_000,
-  });
-  // The response marker proves the browser reached the daemon-backed app-server. The composer
-  // is the user-facing completion state for the selected turn; the sidebar row can lag while
-  // its activity projection catches up and is not part of this daemon transport assertion.
-  await expect(page.getByTestId("send-turn-button")).toHaveAttribute("aria-label", "已完成", {
-    timeout: 120_000,
-  });
-});
+}

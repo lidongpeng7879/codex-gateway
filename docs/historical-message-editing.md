@@ -48,7 +48,9 @@ pnpm test:e2e -- thread-edit-branch
 
 Use isolated test credentials via `E2E_CODEX_HOME` as described in the main testing setup. When changing Docker architecture, use matching-platform images and a fresh test runner-home volume; pnpm's cached platform executable must not be reused across architectures.
 
-The development validation recorded all 15 feature cases passing in the full 101-test run. That run reported 96 passed, 3 failures and 2 serial-dependent non-runs. A focused rerun passed four of the remaining scenarios; the managed-daemon restart scenario still failed and was independently reproduced on pristine upstream e51afc1 with only native-ARM test setup. The full-suite gate is therefore **not claimed green**. Lint, typechecks, production build and independent code reviews passed. No production deployment or upstream PR is implied by those results.
+The latest full native-ARM real-container run passed **all 102 tests in 12.0 minutes**, including all 15 editing/branch cases, attaching to an existing managed daemon without changing its PID, starting an officially stopped daemon, and Settings-driven restart with two browser clients. Lint, typechecks, production build and independent code reviews also passed.
+
+An earlier daemon scenario failed on both this fork and pristine upstream e51afc1. Further PID/socket diagnostics established a test-fixture race: it registered a live Gateway host and then indiscriminately killed processes and removed socket/PID/lock files while Gateway automatically reconnected. The fixture now establishes a genuine official running/stopped state before host registration, with real conversation/completion and process-identity assertions retained. No production kill/unlink/reinstall workaround, suppressed error, longer test timeout or skipped test was added. Earlier failed/interrupted runs remain diagnostic history, not the latest acceptance result. Passing validation does not imply a production deployment or upstream PR.
 
 ---
 
@@ -60,4 +62,4 @@ The development validation recorded all 15 feature cases passing in the full 101
 
 仅支持每轮第一条持久化用户消息。可读取的图片及支持的结构化引用保留；音频、非空文本跨度等无法安全重建的输入会明确拒绝。历史 `@文件`／应用附加上下文无法从当前官方历史接口完整读取，编辑器会提醒重新附加，不能把“可见消息复制”当作“全部上下文复制”。旧式历史若不支持当前官方分页接口，也不会假装支持编辑。
 
-创建分支后发送失败，可以在同一分支重试，不会重新创建分支。Gateway 重启或临时能力过期后，仍可普通打开该分支继续对话，但特殊重试入口可能失效。具体测试结果及已知上游回归场景见上文；不要把它理解为完整测试全部通过或已经替换线上版本。
+创建分支后发送失败，可以在同一分支重试，不会重新创建分支。Gateway 重启或临时能力过期后，仍可普通打开该分支继续对话，但特殊重试入口可能失效。最新完整真实容器回归已通过全部 102 项测试；先前的 daemon 失败已定位并修复为测试生命周期竞态，具体证据见上文。测试通过不代表已经替换线上版本。
