@@ -1,5 +1,10 @@
 import type { HostRecord } from "~~/shared/types";
 
+/** The transport rejected before handing any request bytes to the WebSocket. */
+export class CodexRpcNotDispatchedError extends Error {
+  override name = "CodexRpcNotDispatchedError";
+}
+
 export interface RpcTransportCloseDetail {
   code: number | null;
   signal: string | null;

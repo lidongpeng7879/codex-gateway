@@ -21,6 +21,7 @@ services:
       target: empty-runtime
       args:
         CURRENT_CODEX_CLI_VERSION: ${E2E_SUPPORTED_CODEX_VERSION}
+        CODEX_RELEASE_TARGET: ${E2E_CODEX_RELEASE_TARGET:-x86_64-unknown-linux-musl}
         E2E_UID: ${E2E_UID:-12345}
         E2E_GID: ${E2E_GID:-12345}
     <<: *ssh-target
@@ -41,6 +42,7 @@ services:
       args:
         CODEX_CLI_VERSION: ${E2E_CODEX_CLI_VERSION:-0.140.0}
         CURRENT_CODEX_CLI_VERSION: ${E2E_SUPPORTED_CODEX_VERSION}
+        CODEX_RELEASE_TARGET: ${E2E_CODEX_RELEASE_TARGET:-x86_64-unknown-linux-musl}
         E2E_UID: ${E2E_UID:-12345}
         E2E_GID: ${E2E_GID:-12345}
     <<: *ssh-target
@@ -51,6 +53,7 @@ services:
       target: mfa-runtime
       args:
         CURRENT_CODEX_CLI_VERSION: ${E2E_SUPPORTED_CODEX_VERSION}
+        CODEX_RELEASE_TARGET: ${E2E_CODEX_RELEASE_TARGET:-x86_64-unknown-linux-musl}
         E2E_UID: ${E2E_UID:-12345}
         E2E_GID: ${E2E_GID:-12345}
     <<: *ssh-target

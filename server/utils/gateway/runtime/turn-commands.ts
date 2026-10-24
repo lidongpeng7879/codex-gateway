@@ -11,6 +11,8 @@ import { trimmedOrFallback } from "~~/shared/utils/strings";
 import { parseTurnStartResponse, parseTurnSteerResponse } from "~~/shared/runtime/app-server";
 import { recordAcceptedUserMessage } from "./accepted-user-message";
 import { sendWithUploadedFiles } from "./thread-attachments";
+import type { AgentRpcClient } from "../agent/provider-adapter";
+import { withThreadCommandQueue } from "./thread-command-queue";
 
 export class ThreadTurnCommandService {
   constructor(
@@ -18,21 +20,37 @@ export class ThreadTurnCommandService {
     private readonly openService: ThreadOpenService,
   ) {}
 
-  async startTurn(host: HostRecord, threadId: string, input: TurnStartInput) {
+  async startTurn(
+    host: HostRecord,
+    threadId: string,
+    input: TurnStartInput,
+    dispatch?: { validate: (client: AgentRpcClient) => Promise<void>; dispatched: () => void },
+  ) {
     const clientUserMessageId = trimmedOrFallback(
       input.clientUserMessageId,
       `gateway-${randomUUID()}`,
     );
     return this.registry.withScopedSubscription(host, threadId, async (controller) => {
       const result = await controller.enqueue(() =>
-        sendWithUploadedFiles(controller.client, host.id, threadId, input.files, () =>
-          controller.client.request(
-            "turn/start",
-            buildTurnStartParams(threadId, clientUserMessageId, input),
-            120_000,
-            parseTurnStartResponse,
-          ),
-        ),
+        withThreadCommandQueue(host.id, threadId, async () => {
+          await dispatch?.validate(controller.client);
+          return sendWithUploadedFiles(controller.client, host.id, threadId, input.files, () => {
+            const params =
+              input.originalInput === undefined
+                ? buildTurnStartParams(threadId, clientUserMessageId, input)
+                : { threadId, clientUserMessageId, input: input.originalInput };
+            const pending = controller.client.request(
+              "turn/start",
+              params,
+              120_000,
+              parseTurnStartResponse,
+            );
+            // A synchronous missing-lease failure never dispatched. Async socket preflight
+            // failures carry CodexRpcNotDispatchedError; all other returned promises are ambiguous.
+            dispatch?.dispatched();
+            return pending;
+          });
+        }),
       );
       const turnId = result.turn?.id === undefined ? "" : String(result.turn.id);
       if (turnId !== "") {
@@ -41,7 +59,7 @@ export class ThreadTurnCommandService {
           threadId,
           turnId,
           clientUserMessageId,
-          content: buildUserInput(input),
+          content: input.originalInput ?? buildUserInput(input),
         });
       }
       controller.markActiveMainThread();
@@ -57,18 +75,20 @@ export class ThreadTurnCommandService {
     return this.registry
       .withScopedSubscription(host, threadId, async (controller) => {
         const result = await controller.enqueue(() =>
-          sendWithUploadedFiles(controller.client, host.id, threadId, input.files, () =>
-            controller.client.request(
-              "turn/steer",
-              {
-                threadId,
-                expectedTurnId: input.expectedTurnId,
-                clientUserMessageId,
-                input: buildUserInput(input),
-                additionalContext: input.additionalContext ?? {},
-              },
-              120_000,
-              parseTurnSteerResponse,
+          withThreadCommandQueue(host.id, threadId, () =>
+            sendWithUploadedFiles(controller.client, host.id, threadId, input.files, () =>
+              controller.client.request(
+                "turn/steer",
+                {
+                  threadId,
+                  expectedTurnId: input.expectedTurnId,
+                  clientUserMessageId,
+                  input: buildUserInput(input),
+                  additionalContext: input.additionalContext ?? {},
+                },
+                120_000,
+                parseTurnSteerResponse,
+              ),
             ),
           ),
         );

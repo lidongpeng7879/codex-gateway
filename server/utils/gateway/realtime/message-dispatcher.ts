@@ -155,6 +155,15 @@ export class RealtimeMessageDispatcher {
       .with({ type: "thread.goal.set" }, (value) =>
         this.dispatchEntry(peer, value, this.handlers[value.type]),
       )
+      .with({ type: "thread.edit.read" }, (value) =>
+        this.dispatchEntry(peer, value, this.handlers[value.type]),
+      )
+      .with({ type: "thread.fork" }, (value) =>
+        this.dispatchEntry(peer, value, this.handlers[value.type]),
+      )
+      .with({ type: "turn.revise" }, (value) =>
+        this.dispatchEntry(peer, value, this.handlers[value.type]),
+      )
       .with({ type: "thread.start" }, (value) =>
         this.dispatchEntry(peer, value, this.handlers[value.type]),
       )

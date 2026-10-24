@@ -17,12 +17,14 @@ import { McpRuntimeService } from "./mcp-runtime";
 import { AppServerFileService } from "./app-server-files";
 import { providerAdapterFor } from "../agent/provider-registry";
 import { ThreadAttachmentService } from "./thread-attachments";
+import { ThreadEditService } from "./thread-edit";
 
 class ThreadBroker {
   private readonly registry = new ControllerRegistry();
   private readonly historyReader = new ThreadHistoryReader(this.registry);
   private readonly openService = new ThreadOpenService(this.registry, this.historyReader);
   private readonly turnCommands = new ThreadTurnCommandService(this.registry, this.openService);
+  readonly edits = new ThreadEditService(this.registry, this.turnCommands);
   private readonly goals = new ThreadGoalService(this.registry);
   private readonly settings = new ThreadSettingsService(this.registry);
   private readonly catalog = new ThreadCatalogService(this.registry);
@@ -238,6 +240,7 @@ class ThreadBroker {
   }
 
   closeHost(hostId: number) {
+    this.edits.closeHost(hostId);
     this.registry.closeHost(hostId);
   }
 

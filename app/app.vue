@@ -11,12 +11,14 @@ import { useGatewayNavigationStore } from "@/stores/gateway-navigation";
 import { useGatewayThreadViewStore } from "@/stores/gateway-thread-view";
 import { useGatewayRealtimeStore } from "@/stores/gateway-realtime";
 import { titleForThread } from "@/stores/gateway/thread-utils/identity";
+import { useThreadHistoryNavigation } from "@/composables/useThreadHistoryNavigation";
 
 const bootstrap = useGatewayBootstrapStore();
 const navigation = useGatewayNavigationStore();
 const threadView = useGatewayThreadViewStore();
 const realtime = useGatewayRealtimeStore();
 const auth = useAuthStore();
+useThreadHistoryNavigation();
 const { initializing } = storeToRefs(bootstrap);
 const { selectedThreadId } = storeToRefs(navigation);
 const { currentThread } = storeToRefs(threadView);

@@ -176,6 +176,7 @@ export async function addRemoteHost(
   const host = uiHostSchema.parse(await (await hostResponsePromise).json());
   await closeSettings(page);
   if (options.waitForConnection !== false) {
+    await ensureRemoteSidebarOpen(page);
     await expect(hostConnectedIndicator(page, host.id)).toBeVisible({ timeout: 120_000 });
   }
   if (
@@ -202,6 +203,7 @@ export async function addRemoteProject(
   name = `remote-project-${Date.now()}`,
   remotePath = remote.projectPath,
 ) {
+  await ensureRemoteSidebarOpen(page);
   await page.getByTestId(`host-button-${hostId}`).click({ button: "right" });
   await page.getByRole("menuitem", { name: /添加项目|Add project/ }).click();
   await page.getByTestId("project-name-input").fill(name);
@@ -327,6 +329,15 @@ export async function sendImageTurnThroughGateway(
   );
 }
 
+async function ensureRemoteSidebarOpen(page: Page) {
+  if (
+    !(await page.getByTestId("settings-toggle").isVisible()) &&
+    (await page.getByTestId("mobile-sidebar-toggle").isVisible())
+  ) {
+    await page.getByTestId("mobile-sidebar-toggle").click();
+  }
+}
+
 async function openSettings(page: Page) {
   if (
     await page
@@ -336,6 +347,7 @@ async function openSettings(page: Page) {
   ) {
     return;
   }
+  await ensureRemoteSidebarOpen(page);
   await page.getByTestId("settings-toggle").click();
   await expect(page.getByTestId("settings-panel")).toBeVisible();
 }

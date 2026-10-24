@@ -166,6 +166,7 @@ Metrics and tmux collectors use adaptive delays/backoff and a per-SSH-connection
 - **Codex runtime management**: standalone installation, resumable SFTP upgrades, official daemon lifecycle management, visible upgrade progress and manual restart.
 - **Thread discovery and restore**: remote directory grouping, cursor-paginated timelines, cached route switching and multi-browser pin synchronization.
 - **Realtime turns**: start new turns, steer running turns, interrupt active turns, and answer app-server dynamic requests over WebSocket.
+- **Edit historical messages on new branches**: inline editing, keyboard/touch actions, preserved originals and independent drafts, safe same-branch retries, and branch-origin navigation. Conversation branching does not revert or isolate project files. See [workflow and limitations](docs/historical-message-editing.md), including historical additional-context restrictions.
 - **Plan and goal modes**: review and execute structured plans; set, edit, pause, resume, stop, or clear app-server goals with token/time progress in the composer and details dialog.
 - **Agent loop UI**: reasoning, command execution, terminal waits, file edits, streaming diffs, images, context compaction, sleep, MCP/tool calls, notifications, and sub-agent side panels.
 - **Dockable IDE workspace**: split, resize, float, or pop out Agent, Files, Terminal, Browser, and Sub-agent panels with per-thread layouts persisted locally.

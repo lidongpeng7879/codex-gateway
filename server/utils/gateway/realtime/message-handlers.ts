@@ -1,4 +1,5 @@
 import { authenticatePeer } from "./handlers/auth";
+import { readThreadEdit, forkThread, reviseTurn } from "./handlers/thread-edit";
 import { restartHostDaemon } from "./handlers/host-daemon";
 import { configureWebPush, subscribeWebPush, unsubscribeWebPush } from "./handlers/web-push";
 import {
@@ -77,6 +78,9 @@ export const realtimeMessageDispatcher = new RealtimeMessageDispatcher({
   "tmux.sessions.subscribe": subscribeTmuxSessions,
   "tmux.sessions.refresh": refreshTmuxSessions,
   "tmux.sessions.unsubscribe": unsubscribeTmuxSessions,
+  "thread.edit.read": readThreadEdit,
+  "thread.fork": forkThread,
+  "turn.revise": reviseTurn,
   "thread.activate": activateThread,
   "thread.settings.read": readThreadSettings,
   "thread.start": startThread,

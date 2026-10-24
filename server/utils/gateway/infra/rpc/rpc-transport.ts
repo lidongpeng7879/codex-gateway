@@ -2,7 +2,11 @@ import WebSocket from "ws";
 import type { HostRecord, RpcEnvelope } from "~~/shared/types";
 import { sshConnections } from "../host-services";
 import { codexRemoteAppServerProxyPayload, remoteLoginShellCommand } from "../ssh/remote-command";
-import { createRpcTransportError, type RpcTransportCloseDetail } from "./rpc-errors";
+import {
+  CodexRpcNotDispatchedError,
+  createRpcTransportError,
+  type RpcTransportCloseDetail,
+} from "./rpc-errors";
 import { rawWebSocketDataToString } from "../ws/raw-data";
 
 export interface CodexRpcTransportOptions {
@@ -115,9 +119,11 @@ export class CodexRpcTransport {
   }
 
   send(message: RpcEnvelope) {
-    if (!this.ws) throw new Error("Codex RPC transport is not connected");
+    if (!this.ws) throw new CodexRpcNotDispatchedError("Codex RPC transport is not connected");
     if (this.ws.readyState !== WebSocket.OPEN) {
-      throw new Error(`Codex RPC transport is not open: readyState ${this.ws.readyState}`);
+      throw new CodexRpcNotDispatchedError(
+        `Codex RPC transport is not open: readyState ${this.ws.readyState}`,
+      );
     }
     this.ws.send(JSON.stringify(message));
   }

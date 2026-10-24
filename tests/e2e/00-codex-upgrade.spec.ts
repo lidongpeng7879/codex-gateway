@@ -57,8 +57,10 @@ archive=/opt/codex-upgrade-package.tar.gz
 digest="$(sha256sum "$archive" | awk '{print $1}')"
 stage="$HOME/.cache/codex-gateway/upgrades/upgrade.$digest"
 mkdir -p "$stage"
-head -c 1048576 "$archive" > "$stage/codex-package-x86_64-unknown-linux-musl.tar.gz.part"
-ln "$stage/codex-package-x86_64-unknown-linux-musl.tar.gz.part" "$HOME/upgrade-resume-proof"
+case "$(uname -m)" in aarch64|arm64) release_arch=aarch64 ;; *) release_arch=x86_64 ;; esac
+partial="$stage/codex-package-$release_arch-unknown-linux-musl.tar.gz.part"
+head -c 1048576 "$archive" > "$partial"
+ln "$partial" "$HOME/upgrade-resume-proof"
 `,
       );
     }
