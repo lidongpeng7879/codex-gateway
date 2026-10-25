@@ -1,8 +1,10 @@
 <script setup lang="ts">
+import { threadWorkspaceCwd } from "~~/shared/directory-aliases";
 import { FolderIcon, Loader2Icon } from "@lucide/vue";
 import { computed } from "vue";
 import ChatComposer from "@/components/chat/ChatComposer.vue";
 import ThreadBranchOrigin from "@/components/thread/ThreadBranchOrigin.vue";
+import ThreadWorkspaceDirectory from "@/components/thread/ThreadWorkspaceDirectory.vue";
 import ChatPanelScrollArea from "@/components/chat/ChatPanelScrollArea.vue";
 import ProjectThreadList from "@/components/chat/ProjectThreadList.vue";
 import ThreadVirtualTimeline from "@/components/thread/ThreadVirtualTimeline.vue";
@@ -43,6 +45,7 @@ const showThreadLoading = computed(
   <div class="relative flex min-h-0 flex-1 overflow-hidden">
     <div data-testid="chat-main-pane" class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
       <ThreadBranchOrigin v-if="currentThread" :thread="currentThread" />
+      <ThreadWorkspaceDirectory v-if="currentThread" :thread="currentThread" />
       <ActiveSubAgentsBar
         v-if="selectedThreadId"
         :turns="historyTurns"
@@ -70,7 +73,7 @@ const showThreadLoading = computed(
         :thread-status="selectedThreadStatus"
         :turns="historyTurns"
         :host-id="selectedHostId"
-        :workspace-root="currentThread?.cwd ?? null"
+        :workspace-root="threadWorkspaceCwd(currentThread)"
         :loading="loading"
         :loading-older="loadingOlderTurns"
         :oldest-timeline-cursor="oldestTimelineCursor"

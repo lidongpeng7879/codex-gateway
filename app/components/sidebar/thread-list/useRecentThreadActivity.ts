@@ -1,3 +1,4 @@
+import { threadWorkspaceCwd } from "~~/shared/directory-aliases";
 import { storeToRefs } from "pinia";
 import { computed } from "vue";
 import type { PinnedThreadRecord } from "~~/shared/types";
@@ -57,7 +58,7 @@ export function useRecentThreadActivity() {
   function openRecentThread(thread: ThreadActivitySummary) {
     void threadView.openThread(thread.threadId, {
       hostId: thread.hostId,
-      cwd: thread.cwd,
+      cwd: threadWorkspaceCwd(thread),
     });
   }
 
@@ -81,7 +82,7 @@ function toPinnedThread(thread: ThreadActivitySummary): PinnedThreadRecord {
     hostId: thread.hostId,
     threadId: thread.threadId,
     title: thread.title,
-    subtitle: thread.cwd,
+    subtitle: threadWorkspaceCwd(thread),
     projectName: thread.projectName,
     updatedAt: thread.updatedAt,
   };

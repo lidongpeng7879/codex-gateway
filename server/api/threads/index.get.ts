@@ -13,6 +13,7 @@ import { withAllThreadSources } from "../../utils/gateway/protocol/thread-list";
 import { threadProjectDiscovery } from "../../utils/gateway/runtime/thread-project-discovery";
 import type { AppServerThread, GatewayThread } from "~~/shared/types";
 import { trimmedOrNull } from "~~/shared/utils/strings";
+import { hostDirectoryListFilter } from "../../utils/gateway/state/directory-aliases";
 import { gatewayThreadFromAppServer } from "../../utils/gateway/protocol/gateway-thread";
 
 export default defineGatewayEventHandler(async (event) => {
@@ -32,7 +33,7 @@ export default defineGatewayEventHandler(async (event) => {
   const listParams = withAllThreadSources({
     limit: query.limit,
     cursor: trimmedOrNull(query.cursor),
-    cwd: trimmedOrNull(query.cwd) ?? undefined,
+    cwd: hostDirectoryListFilter(host.id, trimmedOrNull(query.cwd)),
     searchTerm: trimmedOrNull(query.searchTerm) ?? undefined,
   });
   const page = await threadBroker.listThreads(host, listParams);

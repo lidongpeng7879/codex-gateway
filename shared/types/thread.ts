@@ -124,6 +124,8 @@ export type GatewayThread = AppServerThread & {
   hostId: number;
   pinned: boolean;
   title: string | null;
+  /** Configured workspace for navigation/operations; upstream session cwd remains unchanged. */
+  workspaceCwd?: string;
 };
 
 export interface ThreadTokenUsageState {

@@ -1,4 +1,4 @@
-import type { HostRecord } from "~~/shared/types";
+import type { DirectoryAlias, HostRecord } from "~~/shared/types";
 
 export interface HostConnectionFormValue {
   name: string;
@@ -10,6 +10,7 @@ export interface HostConnectionFormValue {
   privateKey: string;
   password: string;
   proxyUrl: string;
+  directoryAliases: DirectoryAlias[];
 }
 
 export function emptyHostConnectionForm(): HostConnectionFormValue {
@@ -23,6 +24,7 @@ export function emptyHostConnectionForm(): HostConnectionFormValue {
     privateKey: "",
     password: "",
     proxyUrl: "socks5h://127.0.0.1:7890",
+    directoryAliases: [],
   };
 }
 
@@ -37,6 +39,7 @@ export function hostConnectionFormFromRecord(host: HostRecord): HostConnectionFo
     privateKey: host.privateKey ?? "",
     password: host.password ?? "",
     proxyUrl: host.proxyUrl ?? "",
+    directoryAliases: (host.directoryAliases ?? []).map((alias) => ({ ...alias })),
   };
 }
 

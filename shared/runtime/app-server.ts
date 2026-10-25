@@ -384,6 +384,7 @@ export const gatewayThreadSchema = appServerThreadSchema.extend({
   hostId: z.number().int().positive(),
   pinned: z.boolean(),
   title: z.string().nullable(),
+  workspaceCwd: z.string().min(1).optional(),
 });
 
 export function parseAppServerThread(value: unknown): AppServerThread {

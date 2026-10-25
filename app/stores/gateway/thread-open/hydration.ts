@@ -1,4 +1,5 @@
 import type { ThreadOpenResult } from "~~/shared/types";
+import { threadWorkspaceCwd } from "~~/shared/directory-aliases";
 import { normalizeTokenUsage } from "~~/shared/token-usage";
 import { useGatewayCatalogStore } from "@/stores/gateway-catalog";
 import { useGatewayComposerStore } from "@/stores/gateway-composer";
@@ -20,7 +21,7 @@ export function applyOpenedThreadResult(threadId: string, result: ThreadOpenResu
   const hadExistingHistory = views.history !== null;
   views.currentThread = result.thread;
   views.setHistory(result.history);
-  navigation.selectedCwd = result.thread.cwd;
+  navigation.selectedCwd = threadWorkspaceCwd(result.thread);
   navigation.selectedThreadId = threadId;
   useGatewayRealtimeStore().rememberThreadSubscription(
     result.hostId,
@@ -70,7 +71,7 @@ export function applyThreadSnapshotResult(
         )
       : result.history,
   );
-  navigation.selectedCwd = result.thread.cwd;
+  navigation.selectedCwd = threadWorkspaceCwd(result.thread);
   navigation.selectedThreadId = threadId;
   if (result.project !== null && result.project !== undefined)
     gateway.mergeProjects([result.project]);
@@ -102,7 +103,7 @@ export function applyStartedThreadResult(result: ThreadOpenResult) {
   views.appliedEventId = result.lastEventId;
   navigation.selectedThreadId = threadId;
   applyCommonThreadResult(threadId, result, result.lastEventId);
-  navigation.selectedCwd = result.thread.cwd;
+  navigation.selectedCwd = threadWorkspaceCwd(result.thread);
   return threadId;
 }
 

@@ -1,5 +1,6 @@
 import type { ProjectCreateInput, ProjectRecord } from "~~/shared/types";
 import { currentGatewayMemoryState, nowIso } from "./memory";
+import { hostWorkspacePath } from "./directory-aliases";
 
 // Directory groups are navigation state, not a second persistent project catalog. Codex owns
 // thread cwd; pins identify threads independently, so neither needs a Gateway-generated ID.
@@ -17,13 +18,28 @@ export const projectStore = {
   },
 
   list(hostId?: number): ProjectRecord[] {
-    return currentGatewayMemoryState()
-      .projects.filter((project) => hostId === undefined || project.hostId === hostId)
-      .sort((left, right) => left.name.localeCompare(right.name));
+    const groups = new Map<string, ProjectRecord>();
+    for (const project of currentGatewayMemoryState().projects) {
+      if (hostId !== undefined && project.hostId !== hostId) continue;
+      const remotePath = hostWorkspacePath(project.hostId, project.remotePath);
+      const key = JSON.stringify([project.hostId, remotePath]);
+      if (!groups.has(key) || project.remotePath === remotePath) {
+        groups.set(key, {
+          ...project,
+          remotePath,
+          name:
+            remotePath === project.remotePath
+              ? project.name
+              : (remotePath.split("/").filter(Boolean).at(-1) ?? "root"),
+        });
+      }
+    }
+    return [...groups.values()].sort((left, right) => left.name.localeCompare(right.name));
   },
 
   get(hostId: number, cwd: string): ProjectRecord | null {
-    return this.list(hostId).find((project) => project.remotePath === cwd.trim()) ?? null;
+    const workspace = hostWorkspacePath(hostId, cwd.trim());
+    return this.list(hostId).find((project) => project.remotePath === workspace) ?? null;
   },
 
   create(input: ProjectCreateInput): ProjectRecord {
@@ -62,6 +78,6 @@ export const projectStore = {
   },
 
   count() {
-    return currentGatewayMemoryState().projects.length;
+    return this.list().length;
   },
 };

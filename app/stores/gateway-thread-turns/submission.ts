@@ -1,3 +1,4 @@
+import { threadWorkspaceCwd } from "~~/shared/directory-aliases";
 import type { ComposerTurnOptions } from "~~/shared/types";
 import { useGatewayBootstrapStore } from "@/stores/gateway-bootstrap";
 import { useGatewayComposerStore } from "@/stores/gateway-composer";
@@ -64,7 +65,7 @@ export async function sendTurn(
     insertOptimisticNewTurnMessage(hostId, threadId, clientUserMessageId, optimisticContent);
   }
 
-  const cwd = views.currentThread?.cwd ?? navigation.selectedCwd;
+  const cwd = threadWorkspaceCwd(views.currentThread) ?? navigation.selectedCwd;
   const requestKind = shouldSteerActiveTurn ? "steer" : "start";
   const executeTurnRequest =
     steerTurnId !== null

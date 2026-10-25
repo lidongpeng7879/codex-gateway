@@ -1,4 +1,5 @@
 export type {
+  DirectoryAlias,
   HostAuthMode,
   HostCreateInput,
   HostRecord,

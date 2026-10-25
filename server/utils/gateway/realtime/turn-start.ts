@@ -16,8 +16,8 @@ export async function startTurnFromRealtime(message: RealtimeTurnStartMessage) {
   const references = await validateProjectFileReferences(host, input.threadId, input.references);
   return threadBroker.startTurn(host, input.threadId, {
     text: input.text,
-    // Existing threads retain their app-server working directory. Directory selection applies
-    // to thread/start; sending a turn uses the thread's persisted cwd.
+    // Browser cwd hints cannot move a thread. The command service applies only configured aliases
+    // resolved against official metadata; all other threads retain their persisted working dir.
     clientUserMessageId: input.clientUserMessageId,
     model: input.model,
     effort: input.effort,

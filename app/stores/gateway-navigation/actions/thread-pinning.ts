@@ -1,3 +1,4 @@
+import { threadWorkspaceCwd } from "~~/shared/directory-aliases";
 import type { GatewayThread, PinnedThreadRecord } from "~~/shared/types";
 import { gatewayApi } from "@/utils/gateway-api";
 import { useGatewayCatalogStore } from "@/stores/gateway-catalog";
@@ -92,7 +93,8 @@ export function createThreadPinningActions() {
       const pinnedThread = gateway.gatewayConfig.pinnedThreads[index];
       if (!pinnedThread) return;
       const project = catalog.projects.find(
-        (candidate) => candidate.hostId === thread.hostId && candidate.remotePath === thread.cwd,
+        (candidate) =>
+          candidate.hostId === thread.hostId && candidate.remotePath === threadWorkspaceCwd(thread),
       );
       gateway.gatewayConfig.pinnedThreads[index] = {
         ...pinnedThread,

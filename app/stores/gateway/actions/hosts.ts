@@ -10,6 +10,7 @@ import { gatewayDomainEvents } from "../domain-events";
 import { writeGatewayRouteSelection } from "../route-state";
 import { beginViewTransition, cacheSelectedThreadView } from "../thread-open/view-state";
 import { captureSessionEpoch } from "@/utils/session-epoch";
+import { reconcileHostDirectoryAliases } from "../directory-aliases";
 
 export function createHostActions() {
   function selectHostState(hostId: number | null) {
@@ -45,6 +46,9 @@ export function createHostActions() {
     async updateHost(hostId: number, input: HostUpdateInput) {
       const sessionIsCurrent = captureSessionEpoch();
       const catalog = useGatewayCatalogStore();
+      const previousAliases = JSON.stringify(
+        catalog.hosts.find((host) => host.id === hostId)?.directoryAliases ?? [],
+      );
       const host = await gatewayApi<HostRecord>(`/api/hosts/${hostId}`, {
         method: "PATCH",
         body: input,
@@ -54,6 +58,13 @@ export function createHostActions() {
         candidate.id === hostId ? host : candidate,
       );
       useGatewayConfigStore().setCatalog(catalog.hosts);
+      if (previousAliases !== JSON.stringify(host.directoryAliases ?? [])) {
+        reconcileHostDirectoryAliases(hostId);
+        const navigation = useGatewayNavigationStore();
+        await navigation.refreshHostProjects(hostId);
+        if (sessionIsCurrent() && navigation.selectedHostId === hostId)
+          await navigation.listThreads();
+      }
       return host;
     },
 

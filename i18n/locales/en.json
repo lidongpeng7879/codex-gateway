@@ -1,5 +1,13 @@
 {
   "app": {
+    "directoryAliases": "Unify directories after a move",
+    "directoryAliasesHelp": "Group conversations from an old path under the current directory. Conversation contents and original directory records are preserved; new messages and file operations use the current directory. Only map full paths confirmed to belong to the same project.",
+    "originalDirectory": "Full original directory path",
+    "workspaceDirectory": "Full current directory path",
+    "addDirectoryAlias": "Add directory mapping",
+    "removeDirectoryAlias": "Remove this mapping",
+    "threadWorkspaceDirectory": "Current workspace: {path}",
+    "threadOriginalDirectory": "Original directory in history: {path}",
     "copyUserMessage": "Copy message",
     "revisionBranchSending": "Sending your revision on the new branch…",
     "revisionBranchSent": "Revision sent on a new branch.",

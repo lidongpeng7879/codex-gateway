@@ -1,3 +1,4 @@
+import { threadWorkspaceCwd } from "~~/shared/directory-aliases";
 import { defineStore } from "pinia";
 import { ref, watch } from "vue";
 import { createUuid } from "@/lib/uuid";
@@ -166,7 +167,7 @@ export const useGatewayThreadEditStore = defineStore("gateway-thread-edit", () =
           throw new Error("Unexpected branch response");
         session.branchId = result.threadId;
         session.branch = result.thread;
-        session.cwd = result.thread.cwd;
+        session.cwd = threadWorkspaceCwd(result.thread);
         forking = false;
       }
       const follow = selected();

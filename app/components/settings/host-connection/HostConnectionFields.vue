@@ -9,6 +9,7 @@ import {
 } from "@codex-gateway/ui/select";
 import { Textarea } from "@codex-gateway/ui/textarea";
 import type { HostConnectionFormValue } from "./form";
+import HostDirectoryAliases from "./HostDirectoryAliases.vue";
 
 const model = defineModel<HostConnectionFormValue>({ required: true });
 defineProps<{ create?: boolean }>();
@@ -80,4 +81,5 @@ const { t } = useI18n();
     type="password"
     :placeholder="t('app.sshPassword')"
   />
+  <HostDirectoryAliases v-model="model.directoryAliases" />
 </template>

@@ -1,3 +1,4 @@
+import { threadWorkspaceCwd } from "~~/shared/directory-aliases";
 import { storeToRefs } from "pinia";
 import { computed } from "vue";
 import { useGatewayTerminalTransport } from "@/composables/terminal/useGatewayTerminalTransport";
@@ -37,7 +38,7 @@ export function useWorkspaceLaunchActions() {
         scope: "thread",
         hostId: selectedHostId.value,
         threadId: selectedThreadId.value,
-        cwd: thread?.cwd ?? selectedCwd.value,
+        cwd: threadWorkspaceCwd(thread) ?? selectedCwd.value,
         title: titleForThread(thread ?? { id: selectedThreadId.value }),
       });
       return;

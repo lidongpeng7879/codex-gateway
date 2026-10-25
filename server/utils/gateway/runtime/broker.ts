@@ -1,3 +1,4 @@
+import { canonicalDirectoryPath } from "~~/shared/directory-aliases";
 import type {
   AgentProviderId,
   HostRecord,
@@ -52,6 +53,9 @@ class ThreadBroker {
     // every Gateway-created thread uses it and browser DTOs do not need to expose storage details.
     const result = await client.request("thread/start", {
       ...params,
+      ...(typeof params.cwd === "string"
+        ? { cwd: canonicalDirectoryPath(params.cwd, host.directoryAliases) }
+        : {}),
       historyMode: "paginated",
       // This official opt-in is fixed at thread creation and cannot be enabled by thread/resume.
       // It exposes exact per-response usage metadata without changing persisted rollout history.

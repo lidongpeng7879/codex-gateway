@@ -1,5 +1,10 @@
 export type HostAuthMode = "agent" | "privateKey" | "password";
 
+export interface DirectoryAlias {
+  originalPath: string;
+  workspacePath: string;
+}
+
 export interface HostRecord {
   id: number;
   name: string;
@@ -11,6 +16,7 @@ export interface HostRecord {
   privateKey?: string | null;
   password?: string | null;
   proxyUrl: string | null;
+  directoryAliases?: DirectoryAlias[];
   hasPassword: boolean;
   createdAt: string;
   updatedAt: string;
@@ -35,6 +41,7 @@ export interface HostCreateInput {
   privateKey?: string | null;
   password?: string | null;
   proxyUrl?: string | null;
+  directoryAliases?: DirectoryAlias[];
 }
 
 export type HostUpdateInput = HostCreateInput;
