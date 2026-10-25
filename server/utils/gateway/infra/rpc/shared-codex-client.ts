@@ -169,7 +169,7 @@ export class SharedCodexClient extends EventEmitter<SharedClientEvents> {
         // Another alias may keep the socket alive after this lease is closed/reconfigured.
         // Its late replies must not be projected into this Host's replacement remote namespace.
         this.assertCurrentLease(connection, generation);
-        if (method === "thread/start") {
+        if (method === "thread/start" || method === "thread/fork") {
           const startedId = stringFromUnknown(
             recordFromUnknown(recordFromUnknown(value)?.thread)?.id,
           );

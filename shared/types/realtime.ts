@@ -30,6 +30,33 @@ import type { WebPushSubscription } from "../notifications/web-push";
 import type { HostUpgradeProgress } from "../host-upgrade";
 
 export type RealtimeClientMessage =
+  | {
+      type: "thread.edit.read";
+      requestId: string;
+      hostId: number;
+      threadId: string;
+      turnId: string;
+      itemId: string;
+    }
+  | {
+      type: "thread.fork";
+      requestId: string;
+      hostId: number;
+      threadId: string;
+      beforeTurnId: string;
+      itemId: string;
+      editId: string;
+    }
+  | {
+      type: "turn.revise";
+      requestId: string;
+      hostId: number;
+      threadId: string;
+      sourceThreadId: string;
+      turnId: string;
+      itemId: string;
+      text: string;
+    }
   | { type: "notification.webPush.configure"; requestId: string }
   | { type: "notification.webPush.subscribe"; requestId: string; subscription: WebPushSubscription }
   | { type: "notification.webPush.unsubscribe"; requestId: string; endpoint: string }
@@ -349,6 +376,9 @@ export type RealtimeClientMessage =
     };
 
 export type RealtimeServerMessage =
+  | { type: "thread.edit.snapshot"; requestId: string; text: string; attachments: string[] }
+  | { type: "thread.forked"; requestId: string; hostId: number; threadId: string }
+  | { type: "turn.revise.accepted"; requestId: string; hostId: number; threadId: string }
   | { type: "notification.webPush.configured"; requestId: string; publicKey: string }
   | { type: "notification.webPush.subscribed"; requestId: string }
   | { type: "notification.webPush.unsubscribed"; requestId: string }

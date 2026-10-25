@@ -42,6 +42,36 @@ const collaborationMode = z
 export const realtimeClientMessageSchema: z.ZodType<RealtimeClientMessage> = z.discriminatedUnion(
   "type",
   [
+    z
+      .object({
+        type: z.literal("thread.edit.read"),
+        ...requestIdField,
+        ...threadScopeFields,
+        turnId: nonEmptyString,
+        itemId: nonEmptyString,
+      })
+      .strict(),
+    z
+      .object({
+        type: z.literal("thread.fork"),
+        ...requestIdField,
+        ...threadScopeFields,
+        beforeTurnId: nonEmptyString,
+        itemId: nonEmptyString,
+        editId: nonEmptyString,
+      })
+      .strict(),
+    z
+      .object({
+        type: z.literal("turn.revise"),
+        ...requestIdField,
+        ...threadScopeFields,
+        sourceThreadId: nonEmptyString,
+        turnId: nonEmptyString,
+        itemId: nonEmptyString,
+        text: z.string().max(100_000),
+      })
+      .strict(),
     z.object({ type: z.literal("notification.webPush.configure"), ...requestIdField }).strict(),
     z
       .object({

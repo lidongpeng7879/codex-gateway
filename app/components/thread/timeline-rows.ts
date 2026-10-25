@@ -33,6 +33,7 @@ export type ThreadTimelineRow =
       turnTiming: DisplayedTurnTiming | null;
       responseUsage: ThreadResponseUsage[] | undefined;
       agentActionsAvailable: boolean;
+      userEditAvailable?: boolean;
     }
   | {
       key: string;
@@ -75,6 +76,11 @@ export function buildThreadTimelineRows(input: {
       timing,
       agentActionsAvailable: input.agentActionsAvailable,
     });
+    const primaryUser = sections.items.find((item) => item.type === "userMessage");
+    for (const row of rows) {
+      if (row.type === "item")
+        row.userEditAvailable = row.item === primaryUser && !String(turn.id).startsWith("client-");
+    }
     if (intermediateOpen && typeof turn.olderItemsCursor === "string") {
       const header = rows.findIndex((row) => row.type === "intermediateHeader");
       rows.splice(header + 1, 0, {
@@ -247,6 +253,7 @@ function sameTimelineRow(left: ThreadTimelineRow, right: ThreadTimelineRow) {
     // ResizeObserver. A separate presentation revision would duplicate timeline state.
     return (
       left.item === right.item &&
+      left.userEditAvailable === right.userEditAvailable &&
       left.turnId === right.turnId &&
       left.section === right.section &&
       left.agentActionsAvailable === right.agentActionsAvailable &&

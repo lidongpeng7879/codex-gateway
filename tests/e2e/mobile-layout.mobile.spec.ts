@@ -940,6 +940,10 @@ function shellQuote(value: string) {
 }
 
 async function longPress(page: Page, locator: Locator) {
+  // Visibility alone does not imply a valid touch point after other tests discover more projects.
+  // A real finger cannot press an off-screen row; derive coordinates only after revealing it.
+  await locator.scrollIntoViewIfNeeded();
+  await expect(locator).toBeInViewport();
   const box = await locator.boundingBox();
   expect(box).toBeTruthy();
   const clientX = box!.x + box!.width / 2;

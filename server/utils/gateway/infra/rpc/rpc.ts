@@ -10,7 +10,7 @@ import {
   type CodexRpcTransportOptions,
   type RpcTransport,
 } from "./rpc-transport";
-import { type RpcTransportCloseDetail } from "./rpc-errors";
+import { CodexRpcNotDispatchedError, type RpcTransportCloseDetail } from "./rpc-errors";
 
 export type RpcNotificationHandler = (message: RpcEnvelope) => void;
 export type RpcResponseParser<T> = (value: unknown) => T;
@@ -222,7 +222,8 @@ export class CodexRpcClient extends EventEmitter<CodexRpcClientEvents> {
   }
 
   private send(message: RpcEnvelope) {
-    if (this.transport === null) throw new Error("Codex RPC transport is not connected");
+    if (this.transport === null)
+      throw new CodexRpcNotDispatchedError("Codex RPC transport is not connected");
     this.transport.send(message);
   }
 

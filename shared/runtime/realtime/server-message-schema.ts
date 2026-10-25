@@ -407,6 +407,20 @@ export const realtimeServerMessageSchema: z.ZodType<RealtimeServerMessage> = z.d
   [
     z
       .object({
+        type: z.literal("thread.edit.snapshot"),
+        ...requestIdField,
+        text: z.string(),
+        attachments: z.array(z.string()),
+      })
+      .strict(),
+    z
+      .object({ type: z.literal("thread.forked"), ...requestIdField, ...threadScopeFields })
+      .strict(),
+    z
+      .object({ type: z.literal("turn.revise.accepted"), ...requestIdField, ...threadScopeFields })
+      .strict(),
+    z
+      .object({
         type: z.literal("notification.webPush.configured"),
         ...requestIdField,
         publicKey: nonEmptyString,

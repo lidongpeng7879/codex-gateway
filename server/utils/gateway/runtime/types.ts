@@ -27,6 +27,8 @@ export interface ThreadOpenSnapshot {
 }
 
 export interface TurnStartInput {
+  /** Server-only validated historical input. Never accepted directly from the browser. */
+  originalInput?: Array<Record<string, unknown>>;
   text: string;
   cwd?: string | null;
   clientUserMessageId?: string | null;

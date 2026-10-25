@@ -166,6 +166,7 @@ MFA 从真实 SSH keyboard-interactive 挑战中自动识别。已识别的 MFA 
 - **Codex runtime 管理**：standalone 安装、SFTP 断点续传升级、官方 daemon 生命周期管理、可见升级进度和手动重启。
 - **会话发现与恢复**：远端目录分组、时间线游标分页、缓存切换和跨浏览器置顶同步。
 - **实时 turn**：通过 WebSocket 发起新 turn、steer 运行中的 turn、中断 active turn，并响应 app-server 动态请求。
+- **编辑历史消息并创建分支**：原位编辑、键盘和触屏操作、保留原对话及独立草稿、同一分支安全重试，以及返回原对话的导航。对话分支不会回滚或隔离项目文件；[使用方式与限制](docs/historical-message-editing.md)说明了历史附加上下文等边界。
 - **Plan 和 Goal 模式**：查看并执行结构化计划；设置、编辑、暂停、恢复、停止或清除 app-server goal，并在输入框和详情弹窗中查看 token/耗时进度。
 - **Agent loop UI**：展示思考、命令执行、终端等待、文件编辑、流式 diff、图片、上下文压缩、sleep、MCP/tool 调用、通知和子代理侧边栏。
 - **可停靠 IDE 工作区**：Agent、Files、Terminal、Browser 和 Sub-agent 面板支持分屏、缩放、浮动和弹出窗口，并按对话在本地保存布局。
