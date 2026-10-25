@@ -26,6 +26,10 @@ export function useThreadHistoryNavigation() {
       return;
     // Thread opening already owns session/view epochs, scoped subscriptions and error reporting.
     // Replace only the entry being restored; never grow history in response to popstate.
-    void views.openThread(target.threadId, { hostId: target.hostId, replaceRoute: true });
+    void views.openThread(target.threadId, {
+      hostId: target.hostId,
+      cwd: target.cwd,
+      replaceRoute: true,
+    });
   });
 }

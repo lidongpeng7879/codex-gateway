@@ -60,7 +60,9 @@ services:
 
   build-runner:
     image: codex-gateway-e2e-runner
-    mem_limit: 2g
+    # Asset compression can need additional native memory on some build hosts. The application
+    # and browser cgroups retain their independent runtime limits below.
+    mem_limit: ${E2E_BUILD_MEMORY_LIMIT:-2g}
     build:
       context: ../..
       dockerfile: tests/e2e/runner.Dockerfile

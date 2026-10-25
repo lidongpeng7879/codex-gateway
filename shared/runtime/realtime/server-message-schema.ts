@@ -414,7 +414,12 @@ export const realtimeServerMessageSchema: z.ZodType<RealtimeServerMessage> = z.d
       })
       .strict(),
     z
-      .object({ type: z.literal("thread.forked"), ...requestIdField, ...threadScopeFields })
+      .object({
+        type: z.literal("thread.forked"),
+        ...requestIdField,
+        ...threadScopeFields,
+        thread: gatewayThreadSchema,
+      })
       .strict(),
     z
       .object({ type: z.literal("turn.revise.accepted"), ...requestIdField, ...threadScopeFields })

@@ -1,6 +1,12 @@
 {
   "app": {
     "copyUserMessage": "复制消息",
+    "revisionBranchSending": "正在新分支中发送修改…",
+    "revisionBranchSent": "修改已发送到新分支。",
+    "revisionBranchRetryable": "修改尚未发出，可以在同一分支安全重试。",
+    "revisionBranchCheckable": "连接中断，请先核对已有分支的发送结果，避免重复发送。",
+    "revisionBranchUncertain": "无法确认发送结果，请查看此分支；不会自动重复发送。",
+    "checkRevisionStatus": "核对发送状态",
     "editMessageTitle": "编辑消息",
     "editMessageHelp": "保存并发送会创建新的对话分支，原对话保持不变。项目文件不会回退。可读取的附件和结构化引用会保留。",
     "editContextWarning": "此前的应用上下文和 {'@'}文件上下文不会恢复。如有需要，请在新分支中重新附加后再继续。",

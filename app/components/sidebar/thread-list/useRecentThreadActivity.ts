@@ -45,7 +45,12 @@ export function useRecentThreadActivity() {
       }))
       .sort((left, right) => {
         const runningOrder = Number(right.status === "running") - Number(left.status === "running");
-        return runningOrder || right.updatedAt - left.updatedAt;
+        return (
+          runningOrder ||
+          right.updatedAt - left.updatedAt ||
+          left.hostId - right.hostId ||
+          (left.threadId < right.threadId ? -1 : left.threadId > right.threadId ? 1 : 0)
+        );
       });
   });
 

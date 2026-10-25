@@ -18,6 +18,11 @@ import { shellQuote } from "../../server/utils/gateway/infra/ssh/shell";
 import type { Page } from "@playwright/test";
 import type { RealtimeClientMessage } from "../../shared/types";
 import { AGENT_OUTPUT_TIMEOUT_MS } from "./helpers/timeouts";
+import { prepareManagedDaemon } from "./helpers/host-daemon";
+
+test.beforeEach(async ({ remoteWorkspace }) => {
+  await prepareManagedDaemon(remoteWorkspace.remote);
+});
 
 type History = Awaited<ReturnType<typeof createEditHistory>>;
 async function forkBoundary(page: Page, hostId: number, history: History, index = 1) {
@@ -241,9 +246,16 @@ for (const [phase, transition] of [
     page,
     remoteWorkspace,
   }) => {
-    const state: { forks: number; revisions: number; branchId?: string; release?: () => void } = {
+    const state: {
+      forks: number;
+      revisions: number;
+      accepted: boolean;
+      branchId?: string;
+      release?: () => void;
+    } = {
       forks: 0,
       revisions: 0,
+      accepted: false,
     };
     await page.routeWebSocket(/\/api\/realtime$/, (route) => {
       const upstream = route.connectToServer();
@@ -259,6 +271,7 @@ for (const [phase, transition] of [
         if (typeof raw === "string") {
           const message = parseRealtimeServerMessage(JSON.parse(raw));
           if (message.type === "thread.forked") state.branchId = message.threadId;
+          if (message.type === "turn.revise.accepted") state.accepted = true;
           if (
             (phase === "fork" && message.type === "thread.forked") ||
             (phase === "revision" && message.type === "turn.revise.accepted")
@@ -292,7 +305,15 @@ for (const [phase, transition] of [
     await page.getByTestId("user-message-edit-input").fill(text);
     await page.getByTestId("save-message-edit").click();
     await expect.poll(() => state.release).toBeTruthy();
-    await expect(page.getByTestId("save-message-edit")).toBeDisabled();
+    if (phase === "fork") await expect(page.getByTestId("save-message-edit")).toBeDisabled();
+    else {
+      // Official fork identity retires the source editor before revision acceptance.
+      await expect(page.getByTestId("user-message-editor")).toHaveCount(0);
+      await expect(page.getByTestId("thread-revision-status")).toHaveAttribute(
+        "data-state",
+        "pending",
+      );
+    }
     if (transition === "navigate") {
       await page.evaluate(
         ({ hostId, threadId }) => window.__codexGatewayE2e!.views.openThread(threadId, { hostId }),
@@ -317,14 +338,23 @@ for (const [phase, transition] of [
       // Reauthenticate to inspect the real result, not a local-only branch record.
       await openApp(page, { resetConfig: false, interceptRealtime: false });
     }
-    if (phase === "revision") await waitCompleted(page, host.id, state.branchId!);
+    // Navigation preserves the explicitly submitted operation; auth reset invalidates it.
+    // A late successful fork may send once in the background but must never steal selection.
+    const revisionWasSubmitted = phase === "revision" || transition === "navigate";
+    if (revisionWasSubmitted) {
+      await expect.poll(() => state.revisions).toBe(1);
+      // A fork can inherit a completed status before the queued revision starts. An outbound
+      // request alone does not prove acceptance, so wait for the genuine upstream receipt first.
+      await expect.poll(() => state.accepted).toBe(true);
+      await waitCompleted(page, host.id, state.branchId!);
+    }
     expect(userTexts(await readTimeline(page, host.id, state.branchId!))).toEqual(
-      phase === "fork" ? [history.texts[0]] : [history.texts[0], text],
+      revisionWasSubmitted ? [history.texts[0], text] : [history.texts[0]],
     );
     expect(await readTimeline(page, host.id, history.threadId)).toEqual(original);
     expect(await history.hash()).toBe(hash);
     expect(state.forks).toBe(1);
-    expect(state.revisions).toBe(phase === "fork" ? 0 : 1);
+    expect(state.revisions).toBe(revisionWasSubmitted ? 1 : 0);
     if (transition === "navigate")
       await expect(page).toHaveURL(new RegExp(`threadId=${other.threadId}`));
   });

@@ -63,7 +63,6 @@ export class ThreadProjectDiscoveryService {
         const page = await threadBroker.listThreads(host, {
           ...params,
           cursor,
-          useStateDbOnly: false,
         });
         if (!this.isCurrent(key, generation)) return;
         this.indexPage(host.id, page);

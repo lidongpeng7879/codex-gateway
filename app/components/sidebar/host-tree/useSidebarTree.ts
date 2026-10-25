@@ -12,7 +12,13 @@ import {
   threadKey,
 } from "../sidebar-utils";
 import type { PinnedThreadRecord, ProjectRecord } from "../sidebar-types";
-import { workspaceDirectoryKey } from "~~/shared/utils/workspace";
+import type { GatewayThread } from "~~/shared/types";
+import { workspaceDirectoryHints, workspaceDirectoryKey } from "~~/shared/utils/workspace";
+import {
+  emptyThreadSnapshots,
+  projectDirectoryThreads,
+} from "@/stores/gateway-navigation/project-threads";
+import { useGatewayThreadEditStore } from "@/stores/gateway-thread-edit";
 
 export function useSidebarTree(longPressTriggered: Ref<boolean>) {
   const store = useGatewayCatalogStore();
@@ -31,8 +37,31 @@ export function useSidebarTree(longPressTriggered: Ref<boolean>) {
     sortPinnedThreadsForDisplay(storedPinnedThreads.value, hosts.value),
   );
 
+  const edits = useGatewayThreadEditStore();
   const projectThreads = computed(() =>
-    threads.value.filter((thread) => thread.pinned !== true).slice(0, 20),
+    projectDirectoryThreads({
+      threads: threads.value,
+      snapshots: [
+        ...emptyThreadSnapshots(threadView.threadViews),
+        ...[
+          threadView.currentThread,
+          ...Object.values(edits.operations).map((operation) => operation.branch),
+        ].filter(
+          (thread): thread is GatewayThread =>
+            thread !== null && thread.id === selectedThreadId.value,
+        ),
+      ],
+      hostId: selectedHostId.value,
+      cwd: selectedCwd.value,
+      selectedThreadId: selectedThreadId.value,
+      excludedIds: new Set([
+        ...threads.value.filter((thread) => thread.pinned).map((thread) => thread.id),
+        ...pinnedThreads.value
+          .filter((thread) => thread.hostId === selectedHostId.value)
+          .map(pinnedThreadId),
+      ]),
+      limit: 20,
+    }),
   );
   const selectedThreadIsPinned = computed(() => {
     if (
@@ -50,13 +79,18 @@ export function useSidebarTree(longPressTriggered: Ref<boolean>) {
   });
   const projectsByHost = computed(() => {
     const byHost = new Map<number, typeof projects.value>();
+    const seen = new Set<string>();
     for (const project of projects.value) {
+      const key = workspaceDirectoryKey(project.hostId, project.remotePath);
+      if (seen.has(key)) continue;
+      seen.add(key);
       const group = byHost.get(project.hostId) ?? [];
       group.push(project);
       byHost.set(project.hostId, group);
     }
     return byHost;
   });
+  const projectDirectoryHints = computed(() => workspaceDirectoryHints(projects.value));
 
   function openThread(
     threadId: string,
@@ -198,6 +232,7 @@ export function useSidebarTree(longPressTriggered: Ref<boolean>) {
     expandedProjectKeys,
     projectThreads,
     projectsByHost,
+    projectDirectoryHints,
     openThread,
     openPinnedThread,
     selectHost,

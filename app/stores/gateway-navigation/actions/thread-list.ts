@@ -6,7 +6,6 @@ import { useGatewayBootstrapStore } from "@/stores/gateway-bootstrap";
 import { useGatewayNavigationStore } from "@/stores/gateway-navigation";
 import { useGatewayThreadActivityStore } from "@/stores/gateway-thread-activity";
 import { useGatewayThreadRuntimeStore } from "@/stores/gateway-thread-runtime";
-import { useGatewayThreadViewStore } from "@/stores/gateway-thread-view";
 import type { ThreadListResponse } from "@/stores/gateway/types";
 import { messageFromError, sortThreads } from "@/stores/gateway/thread-utils/identity";
 import { runtimeStatusFromAppThreadStatus } from "@/stores/gateway/thread-utils/status";
@@ -17,17 +16,30 @@ export function createThreadListActions() {
   async function loadHostOverview(hostId: number) {
     const catalog = useGatewayCatalogStore();
     const sessionIsCurrent = captureSessionEpoch();
+    const observations = captureThreadObservations();
     const response = await gatewayApi<ThreadListResponse>("/api/threads", {
       query: { hostId, limit: 50 },
     });
     if (!sessionIsCurrent()) return false;
     if (response.projects !== undefined) catalog.mergeProjects(response.projects);
-    useGatewayThreadActivityStore().ingestGatewayThreads(response.data ?? [], catalog.projects);
-    syncThreadStatusesFromList(hostId, response.data ?? []);
+    applyThreadObservations(response.data ?? [], catalog.projects, observations);
     return true;
   }
 
   return {
+    async ensureThreadListForSelection() {
+      const navigation = useGatewayNavigationStore();
+      const scope = navigation.threadListScope;
+      if (
+        navigation.selectedHostId === null ||
+        navigation.loadingThreads ||
+        (scope?.hostId === navigation.selectedHostId &&
+          scope.cwd === navigation.selectedCwd &&
+          scope.searchTerm === "")
+      )
+        return;
+      await navigation.listThreads();
+    },
     async connectAllHosts() {
       const catalog = useGatewayCatalogStore();
       const config = useGatewayConfigStore();
@@ -58,24 +70,28 @@ export function createThreadListActions() {
       const config = useGatewayConfigStore();
       const bootstrap = useGatewayBootstrapStore();
       const navigation = useGatewayNavigationStore();
-      const views = useGatewayThreadViewStore();
       const hostId = navigation.selectedHostId;
       const cwd = navigation.selectedCwd;
       if (hostId === null) return;
       const sessionIsCurrent = captureSessionEpoch();
-      views.loading = true;
+      const requestEpoch = ++navigation.threadListEpoch;
+      const observations = captureThreadObservations();
+      const current = () =>
+        sessionIsCurrent() &&
+        navigation.threadListEpoch === requestEpoch &&
+        navigation.selectedHostId === hostId &&
+        navigation.selectedCwd === cwd;
+      navigation.loadingThreads = true;
       bootstrap.clearError();
       try {
         const query: Record<string, unknown> = { hostId, limit: 50 };
         if (cwd !== null && cwd !== "") query.cwd = cwd;
         if (searchTerm !== "") query.searchTerm = searchTerm;
         const response = await gatewayApi<ThreadListResponse>("/api/threads", { query });
-        if (!sessionIsCurrent()) return;
-        if (navigation.selectedHostId !== hostId || navigation.selectedCwd !== cwd) return;
+        if (!current()) return;
         if (response.projects !== undefined) catalog.mergeProjects(response.projects);
-        useGatewayThreadActivityStore().ingestGatewayThreads(response.data ?? [], catalog.projects);
+        applyThreadObservations(response.data ?? [], catalog.projects, observations);
         catalog.setHostConnectionStatus(hostId, "connected");
-        syncThreadStatusesFromList(hostId, response.data ?? []);
         // Sub-agent threads remain addressable by their explicit panel links, but they are not
         // top-level navigation entries. Filter once at the catalog boundary so every sidebar
         // projection cannot accidentally reintroduce them with a slightly different predicate.
@@ -86,10 +102,10 @@ export function createThreadListActions() {
         // browser config here: doing so creates two pin authorities and makes cross-tab updates
         // dependent on which request happened last.
         navigation.threads = sortThreads(mainThreads);
+        navigation.threadListScope = { hostId, cwd, searchTerm };
         config.setCatalog(catalog.hosts);
       } catch (error: unknown) {
-        if (!sessionIsCurrent()) return;
-        if (navigation.selectedHostId !== hostId || navigation.selectedCwd !== cwd) return;
+        if (!current()) return;
         const message = messageFromError(
           error,
           bootstrap.t("app.listThreadsFailed"),
@@ -98,21 +114,36 @@ export function createThreadListActions() {
         catalog.setHostConnectionStatus(hostId, "failed", message);
         bootstrap.setError(message, { hostId, cwd, threadId: navigation.selectedThreadId });
       } finally {
-        if (
-          sessionIsCurrent() &&
-          navigation.selectedHostId === hostId &&
-          navigation.selectedCwd === cwd
-        ) {
-          views.loading = false;
-        }
+        if (current()) navigation.loadingThreads = false;
       }
     },
   };
 }
 
-function syncThreadStatusesFromList(hostId: number, threads: GatewayThread[]) {
+function captureThreadObservations() {
+  return {
+    summaries: useGatewayThreadActivityStore().summariesByKey,
+    statuses: useGatewayThreadRuntimeStore().threadStatusRevisions,
+  };
+}
+function applyThreadObservations(
+  threads: GatewayThread[],
+  projects: ReturnType<typeof useGatewayCatalogStore>["projects"],
+  before: ReturnType<typeof captureThreadObservations>,
+) {
+  const activity = useGatewayThreadActivityStore();
   const runtime = useGatewayThreadRuntimeStore();
   for (const thread of threads) {
-    runtime.setThreadStatus(hostId, thread.id, runtimeStatusFromAppThreadStatus(thread.status));
+    const key = `${thread.hostId}:${thread.id}`;
+    // A list response describes request-start state. It cannot rewind observations made while
+    // it was in flight, even if a newer request has not replaced that same-scope request.
+    if (activity.summariesByKey[key] === before.summaries[key])
+      activity.upsertGatewayThread(thread, projects);
+    if (runtime.threadStatusRevisions[key] === before.statuses[key])
+      runtime.setThreadStatus(
+        thread.hostId,
+        thread.id,
+        runtimeStatusFromAppThreadStatus(thread.status),
+      );
   }
 }

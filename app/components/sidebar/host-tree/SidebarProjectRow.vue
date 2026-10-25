@@ -16,6 +16,7 @@ defineProps<{
   project: ProjectRecord;
   expanded: boolean;
   selected: boolean;
+  directoryHint?: string | null;
   longPressHandlers?: LongPressContextMenuHandlers;
 }>();
 
@@ -30,6 +31,7 @@ const emit = defineEmits<{
     <ContextMenuTrigger as-child>
       <Button
         :data-testid="`project-button-${project.remotePath}`"
+        :title="project.remotePath"
         v-bind="longPressHandlers"
         variant="ghost"
         class="h-10 w-full min-w-0 justify-start gap-2 overflow-hidden rounded-lg px-3 text-[0.9375rem] font-normal hover:bg-surface"
@@ -39,7 +41,7 @@ const emit = defineEmits<{
         <ChevronDownIcon v-if="expanded" class="size-3.5 shrink-0 text-ink-muted" />
         <ChevronRightIcon v-else class="size-3.5 shrink-0 text-ink-muted" />
         <FolderIcon class="size-4 shrink-0" />
-        <SidebarRowLabel :title="project.name" />
+        <SidebarRowLabel :title="project.name" :subtitle="directoryHint" />
       </Button>
     </ContextMenuTrigger>
     <ContextMenuContent :collision-padding="12" prioritize-position class="w-44">

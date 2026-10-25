@@ -35,6 +35,7 @@ export async function forkThread(
     requestId: message.requestId,
     hostId: host.id,
     threadId: result.threadId,
+    thread: result.thread,
   });
 }
 export async function reviseTurn(

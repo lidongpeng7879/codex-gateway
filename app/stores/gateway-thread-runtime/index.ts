@@ -13,6 +13,7 @@ export interface ActiveTerminalProcess {
 export const useGatewayThreadRuntimeStore = defineStore("gateway-thread-runtime", () => {
   const runningThreadKeys = ref<string[]>([]);
   const threadStatuses = ref<Record<string, ThreadRuntimeStatus>>({});
+  const threadStatusRevisions = ref<Record<string, number>>({});
   const unviewedCompletedThreadKeys = ref<string[]>([]);
   const activeTurnIdsByThreadKey = ref<Record<string, string>>({});
   const activeTerminalProcessByThreadKey = ref<Record<string, ActiveTerminalProcess>>({});
@@ -27,6 +28,7 @@ export const useGatewayThreadRuntimeStore = defineStore("gateway-thread-runtime"
   function resetState() {
     runningThreadKeys.value = [];
     threadStatuses.value = {};
+    threadStatusRevisions.value = {};
     unviewedCompletedThreadKeys.value = [];
     activeTurnIdsByThreadKey.value = {};
     activeTerminalProcessByThreadKey.value = {};
@@ -36,6 +38,7 @@ export const useGatewayThreadRuntimeStore = defineStore("gateway-thread-runtime"
   return {
     runningThreadKeys,
     threadStatuses,
+    threadStatusRevisions,
     unviewedCompletedThreadKeys,
     activeTurnIdsByThreadKey,
     activeTerminalProcessByThreadKey,

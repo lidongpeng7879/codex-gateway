@@ -95,6 +95,14 @@ export async function resetGatewayConfig(page: Page) {
 }
 
 async function loginIfNeeded(page: Page) {
+  // App hydration precedes the asynchronous trusted-session probe. Wait for its visible
+  // outcome before deciding whether password login is needed in the container fixture.
+  await expect(
+    page
+      .getByTestId("login-form")
+      .or(page.getByTestId("desktop-layout"))
+      .or(page.getByTestId("mobile-layout")),
+  ).toBeVisible({ timeout: 30_000 });
   if (
     !(await page
       .getByTestId("login-form")

@@ -22,6 +22,10 @@ import { projectForDirectory } from "@/stores/gateway-catalog/selectors";
 import { useGatewayNavigationStore } from "@/stores/gateway-navigation";
 import { useGatewayThreadViewStore } from "@/stores/gateway-thread-view";
 import { titleForThread } from "@/stores/gateway/thread-utils/identity";
+import {
+  emptyThreadSnapshots,
+  projectDirectoryThreads,
+} from "@/stores/gateway-navigation/project-threads";
 import type { GatewayThread } from "~~/shared/types";
 
 const catalog = useGatewayCatalogStore();
@@ -30,17 +34,22 @@ const threadView = useGatewayThreadViewStore();
 const { t } = useI18n();
 const { projects } = storeToRefs(catalog);
 const { selectedHostId, selectedCwd, selectedThreadId, threads } = storeToRefs(navigation);
-const { currentThread, loading } = storeToRefs(threadView);
+const { currentThread } = storeToRefs(threadView);
+const { loadingThreads: loading } = storeToRefs(navigation);
 const selectedProject = computed(() =>
   projectForDirectory(projects.value, selectedHostId.value, selectedCwd.value),
 );
 const { longPressTriggered, longPressContextMenuHandlers } = useLongPressContextMenu();
 
-const sortedThreads = computed(() => {
-  return [...threads.value].sort(
-    (a, b) => Number(b.recencyAt || b.updatedAt || 0) - Number(a.recencyAt || a.updatedAt || 0),
-  );
-});
+const sortedThreads = computed(() =>
+  projectDirectoryThreads({
+    threads: threads.value,
+    snapshots: emptyThreadSnapshots(threadView.threadViews),
+    hostId: selectedHostId.value,
+    cwd: selectedCwd.value,
+    selectedThreadId: selectedThreadId.value,
+  }),
+);
 
 function titleFor(thread: GatewayThread) {
   if (String(thread.id) === String(selectedThreadId.value) && currentThread.value) {

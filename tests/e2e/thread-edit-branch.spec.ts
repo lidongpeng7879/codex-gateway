@@ -291,10 +291,10 @@ test("real revised send preserves attachment/source/draft, retries lost acknowle
   await input.press("Control+Enter");
   // Pending UI suppresses repeated keyboard submission; no new fork or steer is issued.
   await input.dispatchEvent("keydown", { key: "Enter", ctrlKey: true });
-  await expect(page.getByTestId("open-revision-branch")).toBeEnabled({ timeout: 120_000 });
-  await expect(input).toHaveValue(revised);
-  await expect(input).toHaveAttribute("readonly", "");
-  await page.getByTestId("save-message-edit").click();
+  await expect(page.getByTestId("user-message-editor")).toHaveCount(0);
+  await expect(page.getByTestId("check-revision-status")).toBeEnabled({ timeout: 120_000 });
+  await page.getByTestId("check-revision-status").click();
+  await expect(page.getByTestId("thread-revision-status")).toHaveCount(0, { timeout: 120_000 });
   await expect(page.getByTestId("thread-branch-origin")).toBeVisible({ timeout: 120_000 });
   await expect(page).toHaveURL((url) => {
     const selected = url.searchParams.get("threadId");

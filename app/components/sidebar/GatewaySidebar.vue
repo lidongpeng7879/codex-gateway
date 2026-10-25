@@ -61,6 +61,7 @@ const { activeCount: tmuxActiveCount } = tmuxLauncher;
 const hostTreeController = computed<HostTreeController>(() => ({
   hosts: sidebarTree.hosts.value,
   projectsByHost: sidebarTree.projectsByHost.value,
+  projectDirectoryHints: sidebarTree.projectDirectoryHints.value,
   projectThreads: sidebarTree.projectThreads.value,
   expandedHostIds: sidebarTree.expandedHostIds.value,
   expandedProjectKeys: sidebarTree.expandedProjectKeys.value,

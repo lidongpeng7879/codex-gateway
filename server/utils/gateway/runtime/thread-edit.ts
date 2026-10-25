@@ -13,7 +13,8 @@ import {
 import { currentGatewayUserId } from "../state/memory";
 import { threadMetadataStore } from "../state/thread-metadata";
 import { projectStore } from "../state/projects";
-import { CodexRpcError } from "../http/errors";
+import { gatewayThreadFromAppServer } from "../protocol/gateway-thread";
+import { CodexRpcError, publicErrorMessage } from "../http/errors";
 import type { ControllerRegistry } from "./controller-registry";
 import type { ThreadTurnCommandService } from "./turn-commands";
 import { hostRuntimeFingerprint } from "./host-runtime-fingerprint";
@@ -102,7 +103,7 @@ export class ThreadEditService {
   });
   private readonly forks = new LRUCache<
     string,
-    { target: string; result: Promise<{ threadId: string }> }
+    { target: string; result: ReturnType<ThreadEditService["createFork"]> }
   >({ max: 1000, ttl: 24 * 60 * 60_000 });
   constructor(
     private readonly registry: ControllerRegistry,
@@ -160,13 +161,14 @@ export class ThreadEditService {
     }).catch((error) => {
       // A failure before request dispatch (including subscription/read/transport failures) is
       // safe to retry. After dispatch only a definite upstream rejection permits another send.
-      if (
+      const retryable =
         !dispatched ||
         error instanceof CodexRpcNotDispatchedError ||
-        (error instanceof CodexRpcError && error.rpcMethod === "turn/start")
-      )
-        branch.pending = undefined;
-      throw error;
+        (error instanceof CodexRpcError && error.rpcMethod === "turn/start");
+      if (retryable) branch.pending = undefined;
+      throw Object.assign(new Error(publicErrorMessage(error), { cause: error }), {
+        code: retryable ? "REVISION_SEND_RETRYABLE" : "REVISION_SEND_UNCERTAIN",
+      });
     });
     return branch.pending;
   }
@@ -207,7 +209,7 @@ export class ThreadEditService {
       inheritedTurnId,
       assertCurrent,
     });
-    return { threadId: thread.id };
+    return { threadId: thread.id, thread: gatewayThreadFromAppServer(host.id, thread) };
   }
 
   private async sendRevision(

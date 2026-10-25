@@ -4,6 +4,7 @@ import { computed } from "vue";
 import { useGatewayNavigationStore } from "@/stores/gateway-navigation";
 import { workspaceLayoutScopeKey } from "@/stores/gateway-workspace-layout";
 import WorkspaceDock from "./workspace-dock/WorkspaceDock.vue";
+import ThreadRevisionNotice from "../thread/ThreadRevisionNotice.vue";
 
 withDefaults(
   defineProps<{
@@ -29,6 +30,7 @@ const scopeKey = computed(() =>
       owner lets Vue finish the old unmount before creating the target layout, instead of racing a
       removePanel()/fromJSON() transaction inside one Dockview instance.
     -->
+    <ThreadRevisionNotice />
     <WorkspaceDock :key="scopeKey" :layout="layout">
       <template #mobile-header-start>
         <slot name="mobile-header-start" />

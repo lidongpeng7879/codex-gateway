@@ -10,6 +10,7 @@ export async function createEditHistory(
   remote: RemoteCodexEnv,
   options: {
     count?: number;
+    cwd?: string;
     historyMode?: "legacy" | "paginated";
     attachments?: boolean;
     steer?: boolean;
@@ -23,7 +24,7 @@ export async function createEditHistory(
   const turnIds = Array.from({ length: options.count ?? 3 }, () => randomUUID());
   const userItemIds = turnIds.map(() => randomUUID());
   const agentItemIds = turnIds.map(() => randomUUID());
-  const cwd = `/home/codex/edit-${threadId}`;
+  const cwd = options.cwd ?? `/home/codex/edit-${threadId}`;
   const texts = turnIds.map((_, index) =>
     options.attachmentOnly === true && index === 1
       ? ""

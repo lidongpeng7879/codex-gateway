@@ -2,6 +2,7 @@ FROM mcr.microsoft.com/playwright:v1.64.1-noble
 
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
+ENV COREPACK_HOME=/opt/corepack
 
 RUN apt-get update \
   && apt-get install -y --no-install-recommends python3 make g++ git openssh-client ca-certificates \
@@ -16,7 +17,7 @@ WORKDIR /workspace/codex-gateway
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
 COPY packages ./packages
 RUN --mount=type=cache,id=codex-gateway-e2e-pnpm-store,target=/pnpm/store \
-  pnpm install --frozen-lockfile
+  NODE_USE_ENV_PROXY=1 pnpm install --frozen-lockfile
 
 COPY . /workspace/source
 

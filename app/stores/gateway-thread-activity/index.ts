@@ -6,7 +6,7 @@ import type {
   ProjectRecord,
   ThreadRuntimeStatus,
 } from "~~/shared/types";
-import { pinnedKey } from "../gateway/thread-utils/identity";
+import { pinnedKey, threadRecency } from "../gateway/thread-utils/identity";
 import { firstNonEmptyString, trimmedOrNull } from "~~/shared/utils/strings";
 import { isAppServerSubAgentThread } from "~~/shared/runtime/app-server";
 
@@ -89,6 +89,21 @@ export const useGatewayThreadActivityStore = defineStore("gateway-thread-activit
   function upsertSummary(summary: ThreadActivitySummary) {
     const key = pinnedKey(summary.hostId, summary.threadId);
     const existing = summariesByKey.value[key];
+    if (existing !== undefined && summary.updatedAt < existing.updatedAt) {
+      // Structural subagent classification remains sticky even if its late metadata is older.
+      if (summary.isSubAgent && !existing.isSubAgent)
+        summariesByKey.value = {
+          ...summariesByKey.value,
+          [key]: {
+            ...existing,
+            isSubAgent: true,
+            parentThreadId: summary.parentThreadId ?? existing.parentThreadId,
+            agentNickname: summary.agentNickname ?? existing.agentNickname,
+            agentRole: summary.agentRole ?? existing.agentRole,
+          },
+        };
+      return;
+    }
     summariesByKey.value = {
       ...summariesByKey.value,
       [key]: {
@@ -179,6 +194,7 @@ function summaryFromThread(
     | "source"
     | "recencyAt"
     | "updatedAt"
+    | "createdAt"
   >,
   project: ProjectRecord | undefined,
   gatewayTitle: string | null,
@@ -200,7 +216,7 @@ function summaryFromThread(
       parentThreadId !== null ||
       agentRole !== null ||
       agentNickname !== null,
-    updatedAt: thread.recencyAt ?? thread.updatedAt,
+    updatedAt: threadRecency(thread),
   };
 }
 

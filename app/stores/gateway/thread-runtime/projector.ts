@@ -51,6 +51,10 @@ export function applyThreadRuntimeStatus(
   const previousStatus = runtime.threadStatuses[key];
 
   runtime.threadStatuses = { ...runtime.threadStatuses, [key]: input.status };
+  runtime.threadStatusRevisions = {
+    ...runtime.threadStatusRevisions,
+    [key]: (runtime.threadStatusRevisions[key] ?? 0) + 1,
+  };
   useGatewayThreadActivityStore().recordRuntimeStatus(hostId, threadId, input.status);
   syncThreadCompletionAttention(hostId, threadId, previousStatus, input.status);
 
