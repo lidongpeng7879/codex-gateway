@@ -1,6 +1,12 @@
 {
   "app": {
     "copyUserMessage": "Copy message",
+    "revisionBranchSending": "Sending your revision on the new branch…",
+    "revisionBranchSent": "Revision sent on a new branch.",
+    "revisionBranchRetryable": "The revision was not dispatched. You can safely retry on this branch.",
+    "revisionBranchCheckable": "Connection interrupted. Check the existing branch receipt before sending anything again.",
+    "revisionBranchUncertain": "The send result cannot be confirmed. Check this branch; no automatic resend will occur.",
+    "checkRevisionStatus": "Check send status",
     "editMessageTitle": "Edit message",
     "editMessageHelp": "Save and send creates a new conversation branch. The original conversation is retained. Project files are not reverted. Readable attachments and structured references are kept.",
     "editContextWarning": "Prior application context and {'@'}file context are not restored. Reattach them in the new branch if needed before continuing.",

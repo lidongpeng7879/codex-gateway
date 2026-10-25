@@ -12,9 +12,10 @@
     "lint": "pnpm typecheck && pnpm lint:ox && pnpm format:check",
     "lint:fix": "oxlint app scripts server service-worker shared tests nuxt.config.ts playwright.config.ts tailwind.config.ts --ignore-pattern 'third_party/**' --fix && oxfmt --write app scripts server service-worker shared tests nuxt.config.ts playwright.config.ts tailwind.config.ts '!third_party/**'",
     "lint:ox": "oxlint app scripts server service-worker shared tests nuxt.config.ts playwright.config.ts tailwind.config.ts --ignore-pattern 'third_party/**'",
-    "typecheck": "nuxt typecheck && tsc -p service-worker/tsconfig.json && vue-tsc -p tests/e2e/tsconfig.json --noEmit",
+    "typecheck": "nuxt typecheck && tsc -p service-worker/tsconfig.json && vue-tsc -p tests/e2e/tsconfig.json --noEmit && vue-tsc -p tests/unit/tsconfig.json --noEmit",
     "typecheck:dependencies": "pnpm --filter '@codex-gateway/*' --recursive typecheck",
     "user:create": "node scripts/create-user.mjs",
+    "test:edit-ui": "node --experimental-transform-types --import ./tests/unit/register-app-aliases.mjs --test tests/unit/edit-ui.test.ts",
     "test:tailscale-auth": "node --test tests/security/tailscale-auth.test.ts",
     "test:e2e": "tests/e2e/run-in-containers.sh",
     "postinstall": "pnpm build:dependencies && pnpm typecheck:dependencies && nuxt prepare"

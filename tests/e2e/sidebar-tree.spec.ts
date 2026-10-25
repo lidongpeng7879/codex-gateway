@@ -1,9 +1,15 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures/remote-workspace";
 import { openApp } from "./helpers/app";
 import { installRealtimeThreadSnapshotMock, seedGatewayThread } from "./helpers/gateway-store";
 import { defaultGatewayHost, defaultGatewayProject } from "./fixtures/thread-history";
+import { prepareManagedDaemon } from "./helpers/host-daemon";
+import { AGENT_OUTPUT_TIMEOUT_MS } from "./helpers/timeouts";
 
-test("restores the collapsed desktop sidebar and toggles its project tree", async ({ page }) => {
+test("restores the collapsed desktop sidebar and toggles its project tree", async ({
+  page,
+  remoteWorkspace,
+}) => {
+  await prepareManagedDaemon(remoteWorkspace.remote);
   await openApp(page);
 
   const sidebarGap = page.locator('[data-slot="sidebar-gap"]');
@@ -20,41 +26,20 @@ test("restores the collapsed desktop sidebar and toggles its project tree", asyn
   await expect.poll(() => sidebarGap.evaluate((element) => element.clientWidth)).toBeGreaterThan(0);
   await expect(page.getByTestId("desktop-sidebar-collapse")).toBeVisible();
   // Continue in the restored sidebar: tree expansion does not need another login/setup cycle.
-  await seedGatewayThread(page, {
-    hostId: 101,
-    cwd: null,
-    host: { ...defaultGatewayHost(101), name: "Toggle Host" },
-    project: {
-      ...defaultGatewayProject(101, "/workspace/toggle"),
-      name: "Toggle Project",
-      remotePath: "/workspace/toggle",
-    },
-    threads: [
-      {
-        id: "toggle-thread",
-        title: "Toggle Thread",
-        pinned: false,
-        updatedAt: Date.now(),
-      },
-    ],
-  });
-  await page.evaluate(() => {
-    const driver = window.__codexGatewayE2e;
-    if (!driver) throw new Error("Gateway E2E driver is unavailable");
-    driver.catalog.selectProject = async (cwd: string) => {
-      const { navigation } = driver;
-      navigation.selectedCwd = cwd;
-      navigation.selectedThreadId = null;
-    };
-  });
+  const { project } = await remoteWorkspace.provision({ hostName: `toggle-${Date.now()}` });
+  const threadId = await remoteWorkspace.startThread(project.remotePath);
 
   await expect(page.getByTestId("desktop-layout")).toBeVisible();
-  await expect(page.getByTestId("project-button-/workspace/toggle")).toBeVisible();
-  await page.getByTestId("project-button-/workspace/toggle").click();
-  await expect(page.getByTestId("thread-button-toggle-thread")).toBeVisible();
+  const projectButton = page.getByTestId(`project-button-${project.remotePath}`);
+  const threadButton = page.getByTestId(`thread-button-${threadId}`);
+  await expect(projectButton).toBeVisible();
+  await projectButton.click();
+  await expect(threadButton).toBeVisible();
 
-  await page.getByTestId("project-button-/workspace/toggle").click();
-  await expect(page.getByTestId("thread-button-toggle-thread")).toBeHidden();
+  await projectButton.click();
+  await expect(threadButton).toBeHidden();
+  await projectButton.click();
+  await expect(threadButton).toBeVisible();
 });
 
 test("marks completed threads as needing review until they are opened", async ({ page }) => {
@@ -262,49 +247,23 @@ test("sorts pinned threads for display without rewriting persisted pin order", a
 
 test("long expanded tree labels truncate without displacing trailing statuses", async ({
   page,
+  remoteWorkspace,
 }) => {
+  await prepareManagedDaemon(remoteWorkspace.remote);
   await openApp(page);
-  const hostId = 103;
-  const cwd = "/workspace/sidebar-layout";
-  const threadId = "long-sidebar-thread";
-  const longTitle = `Long thread ${"unbroken-segment-".repeat(18)}`;
-  await seedGatewayThread(page, {
-    hostId,
-    cwd,
-    threadId: null,
-    host: {
-      ...defaultGatewayHost(hostId),
-      name: `Long host ${"host-segment-".repeat(12)}`,
-      sshHost: "very-long-hostname.example.internal",
-    },
-    project: {
-      ...defaultGatewayProject(hostId, cwd),
-      name: `Long project ${"project-segment-".repeat(12)}`,
-      remotePath: "/workspace/sidebar-layout",
-    },
-    threads: [{ id: threadId, name: longTitle, pinned: false, updatedAt: 1 }],
+  const { host, project } = await remoteWorkspace.provision({
+    hostName: `Long host ${"host-segment-".repeat(12)}`,
+    projectName: `Long project ${"project-segment-".repeat(12)}`,
   });
-  await installRealtimeThreadSnapshotMock(page, {
-    hostId,
-    snapshots: {
-      [threadId]: {
-        thread: { id: threadId, name: longTitle },
-        history: { thread: { id: threadId, turns: [] } },
-        cwd,
-        runtimeStatus: "running",
-      },
-    },
-  });
-  await page.evaluate(
-    ({ hostId, threadId }) => {
-      const driver = window.__codexGatewayE2e;
-      if (!driver) throw new Error("Gateway E2E driver is unavailable");
-      const { catalog, runtime } = driver;
-      catalog.hostConnectionStatuses = { [hostId]: { status: "connected" } };
-      runtime.setThreadStatus(hostId, threadId, "running");
-    },
-    { hostId, threadId },
-  );
+  const hostId = host.id;
+  const threadId = await remoteWorkspace.startThread(project.remotePath);
+  // Keep the name within the real rename contract while exceeding the sidebar's visible width.
+  const longTitle = `Long thread ${"unbroken-segment-".repeat(10)}`;
+  await page.getByTestId(`thread-button-${threadId}`).click({ button: "right" });
+  await page.getByRole("menuitem", { name: "重命名会话" }).click();
+  await page.getByTestId("rename-thread-input").fill(longTitle);
+  await page.getByTestId("rename-thread-submit").click();
+  await expect(page.getByTestId("rename-thread-dialog")).toBeHidden();
 
   await expect(page.getByTestId(`thread-button-${threadId}`)).toBeVisible();
   await page.getByTestId(`thread-button-${threadId}`).click();
@@ -313,6 +272,10 @@ test("long expanded tree labels truncate without displacing trailing statuses", 
     "true",
   );
   await expect(page.getByTestId(`host-button-${hostId}`).getByLabel("已连接")).toBeVisible();
+  await page
+    .getByPlaceholder("输入后续修改要求")
+    .fill("Run only the shell command sleep 15, then reply SIDEBAR_LAYOUT. Do not modify files.");
+  await page.getByTestId("send-turn-button").click();
   await expect(page.getByTestId(`thread-button-${threadId}`).getByLabel("运行中")).toBeVisible();
 
   const metrics = await page.getByTestId("sidebar-scroll-area").evaluate(
@@ -349,5 +312,8 @@ test("long expanded tree labels truncate without displacing trailing statuses", 
     titleClipped: true,
     titleOverflow: "ellipsis",
     statusesInside: true,
+  });
+  await expect(page.getByTestId("send-turn-button")).toHaveAttribute("aria-label", "已完成", {
+    timeout: AGENT_OUTPUT_TIMEOUT_MS,
   });
 });

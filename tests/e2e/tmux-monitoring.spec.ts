@@ -18,10 +18,10 @@ test("monitors a real tmux pane, persists it, and notifies once when it returns 
   const outputMarker = `tmux-preview-${suffix}`;
   const hostName = `tmux-monitor-host-${suffix}`;
 
+  await resetRemoteTmux(remote);
   await execRemoteSsh(
     remote,
     `
-tmux kill-server >/dev/null 2>&1 || true
 tmux new-session -d -s ${shellQuote(sessionName)} -n model
 tmux send-keys -t ${shellQuote(`${sessionName}:0.0`)} ${shellQuote(`for i in $(seq 1 200); do printf 'training-line-%s\\n' "$i"; done; printf '${outputMarker}\\n'; sleep 300`)} Enter
 tmux new-session -d -s ${shellQuote(idleSessionName)} -n shell
@@ -194,7 +194,7 @@ done`,
   await expect(panel.getByText("Session 已退出")).toBeVisible();
   await expect.poll(() => readTmuxNotifications(bark), { timeout: 30_000 }).toHaveLength(2);
 
-  await execRemoteSsh(remote, "tmux kill-server >/dev/null 2>&1 || true");
+  await resetRemoteTmux(remote);
 });
 
 test("permanently monitors repeated runs and reattaches to the same logical pane", async ({
@@ -207,11 +207,8 @@ test("permanently monitors repeated runs and reattaches to the same logical pane
   const sessionName = `permanent-${suffix}`;
   const hostName = `permanent-monitor-host-${suffix}`;
 
-  await execRemoteSsh(
-    remote,
-    `tmux kill-server >/dev/null 2>&1 || true
-tmux new-session -d -s ${shellQuote(sessionName)} -n train`,
-  );
+  await resetRemoteTmux(remote);
+  await execRemoteSsh(remote, `tmux new-session -d -s ${shellQuote(sessionName)} -n train`);
 
   await openApp(page);
   await configureBarkNotifications(page, bark.url, bark.deviceKey);
@@ -270,8 +267,27 @@ tmux new-session -d -s ${shellQuote(sessionName)} -n train`,
   await startTmuxRun(remote, sessionName);
   expect(await readTmuxNotifications(bark)).toHaveLength(4);
 
-  await execRemoteSsh(remote, "tmux kill-server >/dev/null 2>&1 || true");
+  await resetRemoteTmux(remote);
 });
+
+async function resetRemoteTmux(remote: RemoteCodexEnv) {
+  // kill-server returns before the old server finishes exiting. A new-session in that window
+  // can connect to the dying fixture instead of creating a fresh server.
+  await execRemoteSsh(
+    remote,
+    `set -eu
+server_pids="$(ps -u "$(id -u)" -o pid=,args= | awk '$2 == "tmux:" && $3 == "server" { print $1 }')"
+tmux kill-server >/dev/null 2>&1 || true
+for server_pid in $server_pids; do
+  for attempt in $(seq 1 100); do
+    state="$(ps -o stat= -p "$server_pid" || true)"
+    case "$state" in ''|*Z*) break ;; esac
+    sleep 0.05
+  done
+  case "$state" in ''|*Z*) ;; *) echo 'Isolated tmux server has not stopped' >&2; exit 1 ;; esac
+done`,
+  );
+}
 
 function shellQuote(value: string) {
   return `'${value.replaceAll("'", `'\\''`)}'`;

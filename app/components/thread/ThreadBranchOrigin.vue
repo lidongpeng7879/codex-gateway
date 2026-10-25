@@ -20,7 +20,11 @@ const views = useGatewayThreadViewStore();
       size="sm"
       data-testid="return-to-original"
       @click="
-        views.openThread(thread.forkedFromId!, { hostId: thread.hostId, replaceRoute: false })
+        views.openThread(thread.forkedFromId!, {
+          hostId: thread.hostId,
+          cwd: thread.cwd,
+          replaceRoute: false,
+        })
       "
       >{{ t("app.returnToOriginal") }}</Button
     >

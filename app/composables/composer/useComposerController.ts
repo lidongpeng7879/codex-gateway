@@ -12,6 +12,7 @@ import { useGatewayComposerStore } from "@/stores/gateway-composer";
 import { useGatewayNavigationStore } from "@/stores/gateway-navigation";
 import { useGatewayThreadRuntimeStore } from "@/stores/gateway-thread-runtime";
 import { useGatewayThreadViewStore } from "@/stores/gateway-thread-view";
+import { useGatewayThreadEditStore } from "@/stores/gateway-thread-edit";
 import { latestThreadPlanItem, planItemSummary } from "@/utils/thread-plan";
 import { isThreadGoalOngoing } from "@/utils/thread-goal-display";
 import { useComposerSlashMenu } from "./useComposerSlashMenu";
@@ -23,6 +24,15 @@ export function useComposerController() {
   const navigation = useGatewayNavigationStore();
   const runtime = useGatewayThreadRuntimeStore();
   const threadView = useGatewayThreadViewStore();
+  const edits = useGatewayThreadEditStore();
+  const revisionPending = computed(() =>
+    Object.values(edits.operations).some(
+      (operation) =>
+        operation.pending &&
+        operation.hostId === navigation.selectedHostId &&
+        operation.branchId === navigation.selectedThreadId,
+    ),
+  );
   const { t } = useI18n();
   const { models, loadingModels } = storeToRefs(gateway);
   const { selectedHostId, selectedCwd, selectedThreadId } = storeToRefs(navigation);
@@ -59,7 +69,7 @@ export function useComposerController() {
   );
   const isThreadRunning = computed(() => selectedRuntime.value?.canInterrupt === true);
   const composerInputEnabled = computed(
-    () => selectedThreadId.value !== null || selectedCwd.value !== null,
+    () => !revisionPending.value && (selectedThreadId.value !== null || selectedCwd.value !== null),
   );
   const selectedTurnOptions = () => {
     const effort =
@@ -104,7 +114,9 @@ export function useComposerController() {
   );
   const canUsePrimaryAction = computed(() =>
     Boolean(
-      (canSendTurn.value || canInterruptTurn.value) && !attachmentUpload.uploadingAttachments.value,
+      !revisionPending.value &&
+      (canSendTurn.value || canInterruptTurn.value) &&
+      !attachmentUpload.uploadingAttachments.value,
     ),
   );
   const sendButtonLabel = computed(() => {
@@ -132,6 +144,7 @@ export function useComposerController() {
   });
 
   async function submitComposer() {
+    if (revisionPending.value) return;
     if (await slashActions.executeInlineSlashCommand()) {
       slashCommandsState.dismiss();
       return;
@@ -157,6 +170,7 @@ export function useComposerController() {
   }
 
   function handlePrimaryAction() {
+    if (revisionPending.value) return;
     if (canInterruptTurn.value) {
       void submit.interruptTurn();
       return;

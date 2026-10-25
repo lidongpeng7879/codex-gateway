@@ -6,6 +6,7 @@ import type { LongPressContextMenuHandlers } from "@/composables/interactions/us
 export interface HostTreeController {
   hosts: HostRecord[];
   projectsByHost: Map<number, ProjectRecord[]>;
+  projectDirectoryHints: Map<string, string | null>;
   projectThreads: SidebarThread[];
   expandedHostIds: Set<number>;
   expandedProjectKeys: Set<string>;

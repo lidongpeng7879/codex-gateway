@@ -10,7 +10,6 @@ export const threadListSchema = z.object({
   searchTerm: z.string().trim().nullable().optional(),
   limit: z.coerce.number().int().min(1).max(100).default(30),
   cursor: z.string().trim().nullable().optional(),
-  useRemoteStateIndexOnly: z.coerce.boolean().optional(),
 });
 
 export const threadOpenSchema = z.object({

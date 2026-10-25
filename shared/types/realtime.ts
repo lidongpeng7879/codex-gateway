@@ -377,7 +377,13 @@ export type RealtimeClientMessage =
 
 export type RealtimeServerMessage =
   | { type: "thread.edit.snapshot"; requestId: string; text: string; attachments: string[] }
-  | { type: "thread.forked"; requestId: string; hostId: number; threadId: string }
+  | {
+      type: "thread.forked";
+      requestId: string;
+      hostId: number;
+      threadId: string;
+      thread: GatewayThread;
+    }
   | { type: "turn.revise.accepted"; requestId: string; hostId: number; threadId: string }
   | { type: "notification.webPush.configured"; requestId: string; publicKey: string }
   | { type: "notification.webPush.subscribed"; requestId: string }

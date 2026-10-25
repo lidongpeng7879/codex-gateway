@@ -67,7 +67,7 @@ watch(
 </script>
 
 <template>
-  <div class="min-w-0 overflow-hidden rounded-lg">
+  <div :data-testid="`host-tree-${host.id}`" class="min-w-0 overflow-hidden rounded-lg">
     <ContextMenu>
       <ContextMenuTrigger as-child>
         <Button
@@ -135,6 +135,11 @@ watch(
       >
         <SidebarProjectRow
           :project="project"
+          :directory-hint="
+            controller.projectDirectoryHints.get(
+              workspaceDirectoryKey(project.hostId, project.remotePath),
+            )
+          "
           :expanded="
             controller.expandedProjectKeys.has(
               workspaceDirectoryKey(project.hostId, project.remotePath),

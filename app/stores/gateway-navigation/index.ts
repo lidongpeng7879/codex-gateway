@@ -1,5 +1,5 @@
 import { defineStore, skipHydrate } from "pinia";
-import { ref } from "vue";
+import { ref, watch } from "vue";
 import { useAccountLocalStorage } from "@/composables/storage/useAccountLocalStorage";
 import type { GatewayThread } from "~~/shared/types";
 import type { GatewayRouteSelection } from "@/stores/gateway/route-state";
@@ -22,6 +22,21 @@ export const useGatewayNavigationStore = defineStore("gateway-navigation", () =>
   const selectedCwd = ref<string | null>(null);
   const selectedThreadId = ref<string | null>(null);
   const openingPinnedThreadKey = ref<string | null>(null);
+  const loadingThreads = ref(false);
+  const threadListEpoch = ref(0);
+  const threadListScope = ref<{
+    hostId: number;
+    cwd: string | null;
+    searchTerm: string;
+  } | null>(null);
+  watch(
+    [selectedHostId, selectedCwd],
+    () => {
+      threadListEpoch.value += 1;
+      loadingThreads.value = false;
+    },
+    { flush: "sync" },
+  );
   const actions = {
     ...createThreadListActions(),
     ...createThreadPinningActions(),
@@ -32,6 +47,9 @@ export const useGatewayNavigationStore = defineStore("gateway-navigation", () =>
   }
 
   function resetState() {
+    threadListEpoch.value += 1;
+    loadingThreads.value = false;
+    threadListScope.value = null;
     threads.value = [];
     selectedHostId.value = null;
     selectedCwd.value = null;
@@ -46,6 +64,9 @@ export const useGatewayNavigationStore = defineStore("gateway-navigation", () =>
     selectedCwd,
     selectedThreadId,
     openingPinnedThreadKey,
+    loadingThreads,
+    threadListEpoch,
+    threadListScope,
     rememberOpenThread,
     resetState,
     ...actions,

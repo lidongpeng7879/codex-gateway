@@ -9,8 +9,6 @@ import { requireRecord } from "../../utils/gateway/http/validation/common";
 import { threadListSchema } from "../../utils/gateway/http/validation/threads";
 import { hostStore } from "../../utils/gateway/state/hosts";
 import { projectStore } from "../../utils/gateway/state/projects";
-import { threadMetadataStore } from "../../utils/gateway/state/thread-metadata";
-import { threadSnapshotStore } from "../../utils/gateway/state/thread-snapshots";
 import { withAllThreadSources } from "../../utils/gateway/protocol/thread-list";
 import { threadProjectDiscovery } from "../../utils/gateway/runtime/thread-project-discovery";
 import type { AppServerThread, GatewayThread } from "~~/shared/types";
@@ -29,7 +27,6 @@ export default defineGatewayEventHandler(async (event) => {
     limit: query.limit,
     cursor: query.cursor ?? null,
     searchTerm: query.searchTerm ?? null,
-    useRemoteStateIndexOnly: query.useRemoteStateIndexOnly ?? false,
   });
 
   const listParams = withAllThreadSources({
@@ -37,7 +34,6 @@ export default defineGatewayEventHandler(async (event) => {
     cursor: trimmedOrNull(query.cursor),
     cwd: trimmedOrNull(query.cwd) ?? undefined,
     searchTerm: trimmedOrNull(query.searchTerm) ?? undefined,
-    useStateDbOnly: query.useRemoteStateIndexOnly ?? false,
   });
   const page = await threadBroker.listThreads(host, listParams);
   if (userId !== undefined && discoveryGeneration !== null) {
@@ -52,16 +48,7 @@ export default defineGatewayEventHandler(async (event) => {
     }
   }
   const projects = projectStore.list(host.id);
-  const indexedThreads = threadMetadataStore.list(host.id, {
-    cwd: query.cwd ?? null,
-  });
-  const gatewayThreads = gatewayThreadsForList(
-    host.id,
-    page.data,
-    threadSnapshotStore.listForHost(host.id).map((record) => record.snapshot.thread),
-    indexedThreads,
-    query.searchTerm ?? null,
-  );
+  const gatewayThreads = gatewayThreadsForList(host.id, page.data, query.searchTerm ?? null);
   // Directory groups describe Codex conversations, including history from a removed cwd.
   // Listing them needs no SFTP existence check; actual file operations report their own errors.
   return {
@@ -86,22 +73,12 @@ function shouldDiscoverHostProjects(query: {
 function gatewayThreadsForList(
   hostId: number,
   remoteThreads: AppServerThread[],
-  cachedThreads: AppServerThread[],
-  indexedThreads: ReturnType<typeof threadMetadataStore.list>,
   searchTerm: string | null,
 ) {
-  const metadataById = new Map(indexedThreads.map((thread) => [thread.id, thread]));
-  const threadsById = new Map(remoteThreads.map((thread) => [thread.id, thread]));
-  for (const thread of cachedThreads) {
-    if (metadataById.has(thread.id) && !threadsById.has(thread.id)) {
-      // A freshly started thread can precede rollout materialization and therefore be absent from
-      // thread/list briefly. The open snapshot is the complete official DTO returned by
-      // thread/start; never synthesize an AppServerThread from the metadata index.
-      threadsById.set(thread.id, thread);
-    }
-  }
   const normalizedSearch = searchTerm?.trim().toLowerCase() ?? "";
-  return [...threadsById.values()]
+  // The native page and cursor belong to Codex. The frontend independently projects its
+  // selected official snapshot; appending cached snapshots here repeats rows on later pages.
+  return remoteThreads
     .map((thread) => {
       return gatewayThreadFromAppServer(hostId, thread);
     })

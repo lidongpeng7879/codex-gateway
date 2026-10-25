@@ -225,7 +225,8 @@ export const useGatewayTmuxStore = defineStore("gateway-tmux", () => {
   function resetState() {
     sessionGeneration += 1;
     pendingSummary = null;
-    panelOpen.value = false;
+    // Panel visibility is an account-scoped preference, like the saved workspace layout.
+    // Initial token hydration must clear runtime data without overwriting that preference.
     active.value = [];
     history.value = [];
     loading.value = false;

@@ -5,6 +5,7 @@ import { useClipboard } from "@vueuse/core";
 import { Button } from "@codex-gateway/ui/button";
 import { toast } from "@codex-gateway/ui/sonner";
 import UserMessageEditor from "./UserMessageEditor.vue";
+import ThreadRevisionNotice from "../ThreadRevisionNotice.vue";
 import { messageEditKey, useGatewayThreadEditStore } from "@/stores/gateway-thread-edit";
 import { useGatewayNavigationStore } from "@/stores/gateway-navigation";
 import { Message, MessageContent } from "@codex-gateway/ai-elements/message";
@@ -37,6 +38,9 @@ const target = computed(() =>
 );
 const session = computed(() =>
   target.value ? edits.sessions[messageEditKey(target.value)] : undefined,
+);
+const operation = computed(() =>
+  target.value ? edits.operations[messageEditKey(target.value)] : undefined,
 );
 const editable = computed(
   () =>
@@ -121,6 +125,7 @@ function imageSource(image: { type: string; url: string; path: string }) {
       </div>
       <UserMessageEditor v-if="session" :session="session" @cancel="cancelEdit" />
       <MarkdownContent v-else-if="text" :content="text" compact />
+      <ThreadRevisionNotice v-if="operation" :operation="operation" source />
       <div
         v-if="!session"
         class="user-message-actions flex items-center justify-end gap-1 opacity-100 transition-opacity"
@@ -141,6 +146,7 @@ function imageSource(image: { type: string; url: string; path: string }) {
           data-testid="edit-user-message"
           :aria-label="t('app.editMessageTitle')"
           :title="t('app.editMessageTitle')"
+          :disabled="operation?.pending"
           @click="target && edits.begin(target)"
           ><PencilIcon class="size-4"
         /></Button>

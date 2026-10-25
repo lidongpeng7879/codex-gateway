@@ -1,4 +1,4 @@
-import type { ComposerTurnOptions } from "~~/shared/types";
+import type { ComposerTurnOptions, GatewayThread } from "~~/shared/types";
 import { INITIAL_TIMELINE_PAGE_LIMIT } from "~~/shared/config";
 import { useGatewayCatalogStore } from "@/stores/gateway-catalog";
 import { useGatewayBootstrapStore } from "@/stores/gateway-bootstrap";
@@ -54,16 +54,39 @@ export function createThreadOpenActions() {
     requestScrollToLatest,
     syncSelectedRoute,
 
+    selectCreatedThread(thread: GatewayThread) {
+      // The official creation reply establishes metadata/identity, not a fabricated empty history.
+      // Commit those now without resuming the fork before its explicit revision is accepted.
+      cacheSelectedThreadView();
+      const epoch = beginViewTransition();
+      activatePendingThreadView(thread.hostId, thread.cwd, thread.id);
+      const views = useGatewayThreadViewStore();
+      views.currentThread = thread;
+      views.loading = true;
+      rememberOpenThread(thread.id);
+      syncSelectedRoute({ replace: false });
+      return epoch;
+    },
+
     async openThread(
       threadId: string,
-      context?: { hostId?: number; cwd?: string | null; replaceRoute?: boolean },
+      context?: {
+        hostId?: number;
+        cwd?: string | null;
+        replaceRoute?: boolean;
+      },
     ) {
       const gateway = useGatewayCatalogStore();
       const navigation = useGatewayNavigationStore();
       const views = useGatewayThreadViewStore();
       cacheSelectedThreadView();
       const targetHostId = context?.hostId ?? navigation.selectedHostId;
-      const targetCwd = context?.cwd ?? null;
+      const knownThread =
+        views.threadViews[`${targetHostId}:${threadId}`]?.currentThread ??
+        navigation.threads.find(
+          (thread) => thread.hostId === targetHostId && thread.id === threadId,
+        );
+      const targetCwd = context?.cwd ?? knownThread?.cwd ?? null;
       if (targetHostId === null || targetHostId === undefined) return;
       clearThreadCompletionAttention(targetHostId, threadId);
       if (
@@ -434,6 +457,9 @@ function finishThreadSelection(threadId: string, replaceRoute?: boolean) {
       views.eventEpoch,
     );
   }
+  // Restoring a URL or last-open thread can hydrate a different cwd than bootstrap's default
+  // directory. Refresh that directory's native page independently of the conversation view.
+  void navigation.ensureThreadListForSelection();
 }
 
 async function refreshGoalAfterOpen(hostId: number, threadId: string) {

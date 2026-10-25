@@ -137,7 +137,12 @@ function handleRealtimeError(
     message.request !== null && message.request !== undefined && "requestId" in message.request
       ? message.request
       : undefined,
-    message.details ?? {},
+    {
+      ...message.details,
+      ...(message.code !== null && message.code !== undefined && message.code !== ""
+        ? { code: message.code }
+        : {}),
+    },
   );
   if (message.requestId !== null && message.requestId !== undefined && message.requestId !== "") {
     const rejection = ctx.rejectRequest(message.requestId, requestError);

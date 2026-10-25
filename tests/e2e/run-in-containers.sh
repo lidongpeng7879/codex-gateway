@@ -6,6 +6,10 @@ project_dir="$(cd "$script_dir/../.." && pwd)"
 compose_file="$script_dir/docker-compose.yml"
 project_name="${E2E_COMPOSE_PROJECT_NAME:-codex-gateway-e2e}"
 compose=(docker compose --ansi never --progress quiet -p "$project_name" -f "$compose_file")
+build_args=()
+if [ -n "${E2E_BUILD_PROXY:-}" ]; then
+  build_args+=(--build-arg "HTTP_PROXY=$E2E_BUILD_PROXY" --build-arg "HTTPS_PROXY=$E2E_BUILD_PROXY")
+fi
 
 if [ "${1:-}" = "--turn" ]; then
   export E2E_CODEX_TURN=1
@@ -38,7 +42,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-"${compose[@]}" build --quiet \
+"${compose[@]}" build --quiet "${build_args[@]}" \
   build-runner ssh-target ssh-target-legacy-node ssh-target-npm-codex ssh-target-mfa
 # Build, application server, and browser runner use separate 2 GiB cgroups. Sharing only the
 # gateway network namespace preserves the production-like nip.io subdomain routing used by browser

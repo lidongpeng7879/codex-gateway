@@ -94,14 +94,22 @@ export function titleForThread(
   return identity === undefined ? "Untitled" : String(identity);
 }
 
+export function threadRecency(
+  thread: Pick<GatewayThread, "createdAt" | "recencyAt" | "updatedAt">,
+) {
+  // A new official fork can inherit an older last-turn recency. Its creation is still new activity.
+  return Math.max(thread.createdAt, thread.recencyAt ?? thread.updatedAt ?? 0);
+}
+
 export function sortThreads(threads: GatewayThread[]) {
   return [...threads].sort((left, right) => {
     if (left.pinned !== right.pinned) {
       return left.pinned === true ? -1 : 1;
     }
     return (
-      Number(right.recencyAt ?? right.updatedAt ?? 0) -
-      Number(left.recencyAt ?? left.updatedAt ?? 0)
+      threadRecency(right) - threadRecency(left) ||
+      left.hostId - right.hostId ||
+      (left.id < right.id ? -1 : left.id > right.id ? 1 : 0)
     );
   });
 }
