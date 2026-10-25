@@ -16,7 +16,12 @@ async function submit() {
   error.value = "";
   loading.value = true;
   try {
-    await auth.login({ username: username.value, password: password.value });
+    if (auth.tailscaleAccess) {
+      await auth.loginWithTailscale();
+      if (!auth.isAuthenticated) throw new Error(t("app.tailscaleDenied"));
+    } else {
+      await auth.login({ username: username.value, password: password.value });
+    }
   } catch (caught: unknown) {
     error.value = gatewayErrorMessage(caught, t("app.loginFailed"));
   } finally {
@@ -33,10 +38,14 @@ async function submit() {
       @submit.prevent="submit"
     >
       <div class="space-y-2">
-        <h1 class="text-xl font-semibold text-ink">{{ t("app.loginTitle") }}</h1>
-        <p class="text-sm leading-6 text-ink-muted">{{ t("app.loginDescription") }}</p>
+        <h1 class="text-xl font-semibold text-ink">
+          {{ t(auth.tailscaleAccess ? "app.tailscaleTitle" : "app.loginTitle") }}
+        </h1>
+        <p class="text-sm leading-6 text-ink-muted">
+          {{ t(auth.tailscaleAccess ? "app.tailscaleDescription" : "app.loginDescription") }}
+        </p>
       </div>
-      <div class="mt-6 space-y-3">
+      <div v-if="!auth.tailscaleAccess" class="mt-6 space-y-3">
         <Input
           v-model="username"
           autocomplete="username"
@@ -64,7 +73,7 @@ async function submit() {
         data-testid="login-submit"
       >
         <Loader2Icon v-if="loading" class="size-4 animate-spin" />
-        {{ t("app.login") }}
+        {{ t(auth.tailscaleAccess ? "app.tailscaleRetry" : "app.login") }}
       </Button>
     </form>
   </main>

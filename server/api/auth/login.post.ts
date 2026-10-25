@@ -1,5 +1,6 @@
 import { createError, readValidatedBody } from "h3";
 import { z } from "zod";
+import { tailscaleLoginEnabled } from "../../utils/gateway/auth/tailscale";
 import { userStore } from "../../utils/gateway/auth/users";
 
 const loginSchema = z.object({
@@ -8,6 +9,9 @@ const loginSchema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
+  if (tailscaleLoginEnabled()) {
+    throw createError({ statusCode: 403, data: { authMode: "tailscale" } });
+  }
   const input = await readValidatedBody(event, (body) => loginSchema.parse(body));
   const session = await userStore.login(input.username, input.password);
   if (!session) {

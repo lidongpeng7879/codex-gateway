@@ -67,12 +67,14 @@ export function createRealtimeConnection(options: RealtimeConnectionOptions) {
     const socket = new WebSocket(`${protocol}//${window.location.host}/api/realtime`);
     socket.binaryType = "arraybuffer";
     state.socket = socket;
+    let socketSessionEpoch = auth.sessionEpoch;
 
     socket.addEventListener("open", () => {
       if (state.generation !== generation) {
         socket.close();
         return;
       }
+      socketSessionEpoch = auth.sessionEpoch;
       socket.send(JSON.stringify({ type: "auth.authenticate", token: auth.token }));
     });
 
@@ -101,7 +103,7 @@ export function createRealtimeConnection(options: RealtimeConnectionOptions) {
       if (event.code === 1008) {
         // The server uses policy-close for invalid, expired, and explicitly revoked sessions.
         // Clear durable auth here so WebSocket-only pages return to Login without a toast loop.
-        auth.clearSession();
+        if (auth.isCurrentSession(socketSessionEpoch)) auth.clearSession();
         return;
       }
       scheduleReconnect();

@@ -41,7 +41,10 @@ async function logout() {
       </div>
     </div>
 
-    <div class="space-y-3 rounded-xl border border-danger/30 bg-danger/5 p-4">
+    <div
+      v-if="!auth.tailscaleAccess"
+      class="space-y-3 rounded-xl border border-danger/30 bg-danger/5 p-4"
+    >
       <div class="space-y-1">
         <div class="text-sm font-medium">{{ $t("app.accountSession") }}</div>
         <p class="text-sm text-ink-secondary">
@@ -53,5 +56,6 @@ async function logout() {
         {{ loggingOut ? $t("app.loggingOut") : $t("app.logout") }}
       </Button>
     </div>
+    <p v-else class="text-sm text-ink-secondary">{{ $t("app.tailscaleDescription") }}</p>
   </div>
 </template>

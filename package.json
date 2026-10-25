@@ -15,6 +15,7 @@
     "typecheck": "nuxt typecheck && tsc -p service-worker/tsconfig.json && vue-tsc -p tests/e2e/tsconfig.json --noEmit",
     "typecheck:dependencies": "pnpm --filter '@codex-gateway/*' --recursive typecheck",
     "user:create": "node scripts/create-user.mjs",
+    "test:tailscale-auth": "node --test tests/security/tailscale-auth.test.ts",
     "test:e2e": "tests/e2e/run-in-containers.sh",
     "postinstall": "pnpm build:dependencies && pnpm typecheck:dependencies && nuxt prepare"
   },

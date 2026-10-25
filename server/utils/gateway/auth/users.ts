@@ -63,19 +63,13 @@ export const userStore = {
     if (!user || !user.isActive || !verifyPassword(password, user.passwordHash)) {
       return null;
     }
-    const token = randomBytes(32).toString("base64url");
-    const expiresAt = new Date(Date.now() + SESSION_DAYS * 86_400_000).toISOString();
-    const now = new Date().toISOString();
-    gatewayDatabase()
-      .prepare(
-        "INSERT INTO sessions (user_id, token_hash, expires_at, created_at, last_seen_at) VALUES (?, ?, ?, ?, ?)",
-      )
-      .run(user.id, hashToken(token), expiresAt, now, now);
-    return {
-      token,
-      expiresAt,
-      user: { id: user.id, username: user.username },
-    };
+    return createSession(user);
+  },
+
+  /** Only call after verifying a server-configured external identity. */
+  loginTrustedUser(username: string): AuthSession | null {
+    const user = this.findByUsername(username);
+    return user?.isActive === true ? createSession(user) : null;
   },
 
   authenticateToken(token: string): AuthenticatedUser | null {
@@ -198,4 +192,20 @@ export const userStore = {
 
 function normalizeUsername(username: string) {
   return username.trim().toLowerCase();
+}
+
+function createSession(user: AuthenticatedUser): AuthSession {
+  const token = randomBytes(32).toString("base64url");
+  const expiresAt = new Date(Date.now() + SESSION_DAYS * 86_400_000).toISOString();
+  const now = new Date().toISOString();
+  gatewayDatabase()
+    .prepare(
+      "INSERT INTO sessions (user_id, token_hash, expires_at, created_at, last_seen_at) VALUES (?, ?, ?, ?, ?)",
+    )
+    .run(user.id, hashToken(token), expiresAt, now, now);
+  return {
+    token,
+    expiresAt,
+    user: { id: user.id, username: user.username },
+  };
 }
