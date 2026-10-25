@@ -14,9 +14,11 @@ export function gatewayApi<T>(
 ) {
   const auth = useAuthStore();
   auth.hydrate();
+  const epoch = auth.sessionEpoch;
+  const token = auth.token;
   const headers = new Headers(options.headers);
-  if (auth.token !== "") {
-    headers.set("authorization", `Bearer ${auth.token}`);
+  if (token !== "") {
+    headers.set("authorization", `Bearer ${token}`);
   }
   // Use Nuxt's browser contract explicitly: tooling also loads Nitro's global $fetch declaration,
   // whose third generic parameter is options rather than Nuxt's HTTP method.
@@ -25,7 +27,7 @@ export function gatewayApi<T>(
     ...options,
     headers,
   }).catch((error: unknown) => {
-    if (isUnauthorizedResponse(error)) auth.clearSession();
+    if (isUnauthorizedResponse(error) && auth.isCurrentSession(epoch)) auth.clearSession();
     throw error;
   });
 }
@@ -49,6 +51,7 @@ export function gatewayUpload(
   const auth = useAuthStore();
   auth.hydrate();
   const token = auth.token;
+  const epoch = auth.sessionEpoch;
   return new Promise((resolve, reject) => {
     options.signal.throwIfAborted();
     const request = new XMLHttpRequest();
@@ -61,7 +64,7 @@ export function gatewayUpload(
       if (request.status >= 200 && request.status < 300) {
         resolve(response);
       } else {
-        if (request.status === 401 && auth.token === token) auth.clearSession();
+        if (request.status === 401 && auth.isCurrentSession(epoch)) auth.clearSession();
         reject(new Error(gatewayErrorMessage(response, `Upload failed (HTTP ${request.status})`)));
       }
     };

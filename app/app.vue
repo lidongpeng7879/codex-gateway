@@ -22,7 +22,7 @@ useThreadHistoryNavigation();
 const { initializing } = storeToRefs(bootstrap);
 const { selectedThreadId } = storeToRefs(navigation);
 const { currentThread } = storeToRefs(threadView);
-const { initialized, isAuthenticated, token } = storeToRefs(auth);
+const { initialized, isAuthenticated, token, resolvingTrustedSession } = storeToRefs(auth);
 const mounted = ref(false);
 let activeSessionToken = "";
 const pageTitle = computed(() => {
@@ -54,9 +54,9 @@ onMounted(() => {
 });
 
 watch(
-  [initialized, token],
-  ([authInitialized, currentToken]) => {
-    if (!authInitialized || currentToken === activeSessionToken) {
+  [initialized, token, resolvingTrustedSession],
+  ([authInitialized, currentToken, resolving]) => {
+    if (!authInitialized || resolving || currentToken === activeSessionToken) {
       return;
     }
     activeSessionToken = currentToken;
@@ -86,6 +86,13 @@ watch(
     >ready</span
   >
   <Toaster rich-colors position="top-right" />
-  <LoginScreen v-if="mounted && !isAuthenticated" />
+  <main
+    v-if="mounted && resolvingTrustedSession"
+    class="flex min-h-dvh items-center justify-center bg-canvas text-ink-muted"
+    role="status"
+  >
+    {{ $t("app.tailscaleConnecting") }}
+  </main>
+  <LoginScreen v-else-if="mounted && !isAuthenticated" />
   <NuxtPage v-else />
 </template>
