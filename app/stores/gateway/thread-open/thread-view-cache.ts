@@ -1,3 +1,4 @@
+import { threadWorkspaceCwd } from "~~/shared/directory-aliases";
 import type { GatewayEvent, ThreadHistoryState, ThreadTimelineHistoryState } from "~~/shared/types";
 import { CLIENT_THREAD_CACHE_LIMIT } from "~~/shared/config";
 import { projectThreadTimelineHistory } from "~~/shared/thread-history/timeline";
@@ -99,7 +100,7 @@ export function activateThreadViewFromCache(hostId: number, threadId: string) {
   // Route changes are selection only: restore the already-projected Pinia references. Do not call
   // setHistory() here, because remounting Agent for Dockview must not rescan a large cached thread.
   navigation.selectedHostId = view.hostId;
-  navigation.selectedCwd = view.currentThread?.cwd ?? view.cwd;
+  navigation.selectedCwd = threadWorkspaceCwd(view.currentThread) ?? view.cwd;
   navigation.selectedThreadId = view.threadId;
   views.currentThread = view.currentThread;
   views.history = view.history;

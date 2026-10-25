@@ -79,6 +79,7 @@ export function parseGatewayConfig(body: unknown): GatewayConfig {
       privateKey: host.privateKey ?? null,
       password: host.password ?? null,
       proxyUrl: trimmedOrNull(host.proxyUrl),
+      directoryAliases: host.directoryAliases,
       hasPassword:
         typeof host.password === "string" ? host.password.length > 0 : (host.hasPassword ?? false),
       createdAt: host.createdAt ?? timestamp,

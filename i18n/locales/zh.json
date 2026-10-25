@@ -1,5 +1,13 @@
 {
   "app": {
+    "directoryAliases": "统一迁移前后的目录",
+    "directoryAliasesHelp": "将旧路径的历史会话归入当前目录。会话内容和原始目录记录保留，发送消息和文件操作使用当前目录。仅填写确认属于同一项目的完整路径。",
+    "originalDirectory": "旧目录的完整路径",
+    "workspaceDirectory": "当前目录的完整路径",
+    "addDirectoryAlias": "添加目录对应关系",
+    "removeDirectoryAlias": "移除此对应关系",
+    "threadWorkspaceDirectory": "当前工作目录：{path}",
+    "threadOriginalDirectory": "历史记录的原始目录：{path}",
     "copyUserMessage": "复制消息",
     "revisionBranchSending": "正在新分支中发送修改…",
     "revisionBranchSent": "修改已发送到新分支。",

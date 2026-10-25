@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { directoryAliasesSchema } from "./directory-aliases";
 
 export const hostBaseSchema = z
   .object({
@@ -14,6 +15,7 @@ export const hostBaseSchema = z
     privateKey: z.string().nullable().optional(),
     password: z.string().nullable().optional(),
     proxyUrl: z.string().trim().nullable().optional().default("socks5h://127.0.0.1:7890"),
+    directoryAliases: directoryAliasesSchema,
   })
   .strict();
 

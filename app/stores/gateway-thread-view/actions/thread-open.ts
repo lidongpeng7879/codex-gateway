@@ -1,4 +1,5 @@
 import type { ComposerTurnOptions, GatewayThread } from "~~/shared/types";
+import { threadWorkspaceCwd } from "~~/shared/directory-aliases";
 import { INITIAL_TIMELINE_PAGE_LIMIT } from "~~/shared/config";
 import { useGatewayCatalogStore } from "@/stores/gateway-catalog";
 import { useGatewayBootstrapStore } from "@/stores/gateway-bootstrap";
@@ -59,7 +60,7 @@ export function createThreadOpenActions() {
       // Commit those now without resuming the fork before its explicit revision is accepted.
       cacheSelectedThreadView();
       const epoch = beginViewTransition();
-      activatePendingThreadView(thread.hostId, thread.cwd, thread.id);
+      activatePendingThreadView(thread.hostId, threadWorkspaceCwd(thread), thread.id);
       const views = useGatewayThreadViewStore();
       views.currentThread = thread;
       views.loading = true;
@@ -86,7 +87,7 @@ export function createThreadOpenActions() {
         navigation.threads.find(
           (thread) => thread.hostId === targetHostId && thread.id === threadId,
         );
-      const targetCwd = context?.cwd ?? knownThread?.cwd ?? null;
+      const targetCwd = threadWorkspaceCwd(knownThread) ?? context?.cwd ?? null;
       if (targetHostId === null || targetHostId === undefined) return;
       clearThreadCompletionAttention(targetHostId, threadId);
       if (
@@ -175,7 +176,7 @@ export function createThreadOpenActions() {
         commit: (result) => {
           upsertThreadView({
             hostId,
-            cwd: result.thread.cwd,
+            cwd: threadWorkspaceCwd(result.thread),
             threadId,
             currentThread: result.thread,
             history: result.history,
@@ -361,7 +362,7 @@ async function recoverThreadSnapshot(hostId: number, threadId: string) {
       } else {
         upsertThreadView({
           hostId,
-          cwd: result.thread.cwd,
+          cwd: threadWorkspaceCwd(result.thread),
           threadId,
           currentThread: result.thread,
           history: result.history,

@@ -1,4 +1,5 @@
 import type { GatewayThread } from "~~/shared/types";
+import { threadWorkspaceCwd } from "~~/shared/directory-aliases";
 import { isAppServerSubAgentThread } from "~~/shared/runtime/app-server";
 import { sortThreads } from "@/stores/gateway/thread-utils/identity";
 import type { ThreadViewState } from "@/stores/gateway/types";
@@ -29,7 +30,7 @@ export function projectDirectoryThreads(input: {
   for (const thread of [...input.threads, ...input.snapshots]) {
     if (
       thread.hostId !== input.hostId ||
-      thread.cwd !== input.cwd ||
+      threadWorkspaceCwd(thread) !== input.cwd ||
       input.excludedIds?.has(thread.id) === true ||
       isAppServerSubAgentThread(thread)
     )

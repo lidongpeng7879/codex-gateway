@@ -1,3 +1,4 @@
+import { threadWorkspaceCwd } from "~~/shared/directory-aliases";
 import { storeToRefs } from "pinia";
 
 import { computed } from "vue";
@@ -103,7 +104,7 @@ export function useWorkspacePanels(selection: WorkspacePanelSelection) {
   });
 
   const fileWorkspaceRoot = computed(() => {
-    const cwd = currentThread.value?.cwd ?? "";
+    const cwd = threadWorkspaceCwd(currentThread.value) ?? "";
     if (cwd !== "") return cwd;
     return selection.selectedCwd.value ?? "";
   });

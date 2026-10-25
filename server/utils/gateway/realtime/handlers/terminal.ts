@@ -1,3 +1,4 @@
+import { hostWorkspacePath } from "../../state/directory-aliases";
 import type { RealtimeClientMessage } from "~~/shared/types";
 import { firstNonEmptyString, trimmedOrNull } from "~~/shared/utils/strings";
 import { requireRecord } from "../../http/validation/common";
@@ -85,13 +86,13 @@ export function subscribeTerminalEvents(peer: RealtimePeer) {
 function resolveTerminalCwd(request: Extract<RealtimeClientMessage, { type: "terminal.open" }>) {
   const requestedCwd = trimmedOrNull(request.cwd);
   if (requestedCwd !== null) {
-    return requestedCwd;
+    return hostWorkspacePath(request.hostId, requestedCwd);
   }
   if (typeof request.threadId === "string" && request.threadId.length > 0) {
     const metadata = threadMetadataStore.get(request.hostId, request.threadId);
     const metadataCwd = trimmedOrNull(metadata?.cwd);
     if (metadataCwd !== null) {
-      return metadataCwd;
+      return hostWorkspacePath(request.hostId, metadataCwd);
     }
   }
   return null;

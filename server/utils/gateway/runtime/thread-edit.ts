@@ -20,6 +20,7 @@ import type { ThreadTurnCommandService } from "./turn-commands";
 import { hostRuntimeFingerprint } from "./host-runtime-fingerprint";
 import { hostStore } from "../state/hosts";
 import { CodexRpcNotDispatchedError } from "../infra/rpc/rpc-errors";
+import { hostWorkspacePath } from "../state/directory-aliases";
 
 export interface EditTarget {
   threadId: string;
@@ -178,6 +179,8 @@ export class ThreadEditService {
     const inheritedTurnId = await this.predecessorTurnId(host, target);
     const client = await this.registry.getHostClient(host);
     assertCurrent();
+    const sourceCwd = threadMetadataStore.get(host.id, target.threadId)?.cwd;
+    const workspaceCwd = sourceCwd == null ? undefined : hostWorkspacePath(host.id, sourceCwd);
     const result = await client.request(
       "thread/fork",
       {
@@ -185,6 +188,7 @@ export class ThreadEditService {
         beforeTurnId: target.turnId,
         excludeTurns: true,
         deferGoalContinuation: true,
+        ...(workspaceCwd !== undefined && workspaceCwd !== sourceCwd ? { cwd: workspaceCwd } : {}),
       },
       120_000,
       parseThreadStartResult,
@@ -290,6 +294,7 @@ export class ThreadEditService {
       throw new Error("Wait for the original conversation to finish before editing");
     if (source.thread.parentThreadId !== null || source.thread.canAcceptDirectInput === false)
       throw new Error("This conversation cannot be edited");
+    threadMetadataStore.record(host.id, source.thread);
     // Read from the beginning of this exact turn, not from a browser summary. A steer item may
     // share its turn id; only the first persisted user input maps exactly to beforeTurnId.
     let cursor: string | null = null;

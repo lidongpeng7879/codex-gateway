@@ -1,5 +1,6 @@
 import type { AppServerThread, GatewayThread } from "~~/shared/types";
 import { currentGatewayMemoryState } from "../state/memory";
+import { hostWorkspacePath } from "../state/directory-aliases";
 
 /**
  * The browser boundary is the only place that enriches an official app-server Thread. Runtime
@@ -10,10 +11,12 @@ export function gatewayThreadFromAppServer(hostId: number, thread: AppServerThre
   const pinned = currentGatewayMemoryState().pinnedThreads.find(
     (candidate) => candidate.hostId === hostId && candidate.threadId === thread.id,
   );
+  const workspaceCwd = hostWorkspacePath(hostId, thread.cwd);
   return {
     ...thread,
     hostId,
     pinned: pinned !== undefined,
     title: pinned?.title ?? thread.name,
+    ...(workspaceCwd === thread.cwd ? {} : { workspaceCwd }),
   };
 }

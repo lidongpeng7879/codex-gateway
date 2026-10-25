@@ -11,6 +11,8 @@ import { messageFromError, sortThreads } from "@/stores/gateway/thread-utils/ide
 import { runtimeStatusFromAppThreadStatus } from "@/stores/gateway/thread-utils/status";
 import { isAppServerSubAgentThread } from "~~/shared/runtime/app-server";
 import { captureSessionEpoch } from "@/utils/session-epoch";
+import { canonicalDirectoryPath } from "~~/shared/directory-aliases";
+import { writeGatewayRouteSelection } from "@/stores/gateway/route-state";
 
 export function createThreadListActions() {
   async function loadHostOverview(hostId: number) {
@@ -71,8 +73,19 @@ export function createThreadListActions() {
       const bootstrap = useGatewayBootstrapStore();
       const navigation = useGatewayNavigationStore();
       const hostId = navigation.selectedHostId;
-      const cwd = navigation.selectedCwd;
       if (hostId === null) return;
+      const host = catalog.hosts.find((candidate) => candidate.id === hostId);
+      const cwd =
+        navigation.selectedCwd === null
+          ? null
+          : canonicalDirectoryPath(navigation.selectedCwd, host?.directoryAliases);
+      if (cwd !== navigation.selectedCwd) {
+        navigation.selectedCwd = cwd;
+        writeGatewayRouteSelection(
+          { hostId, cwd, threadId: navigation.selectedThreadId },
+          { replace: true },
+        );
+      }
       const sessionIsCurrent = captureSessionEpoch();
       const requestEpoch = ++navigation.threadListEpoch;
       const observations = captureThreadObservations();

@@ -5,6 +5,7 @@ import type {
   RemoteDirectoryEntry,
 } from "~~/shared/types";
 import { gatewayApi } from "@/utils/gateway-api";
+import { canonicalDirectoryPath } from "~~/shared/directory-aliases";
 import { useGatewayCatalogStore } from "@/stores/gateway-catalog";
 import { useGatewayBootstrapStore } from "@/stores/gateway-bootstrap";
 import { useGatewayNavigationStore } from "@/stores/gateway-navigation";
@@ -125,13 +126,20 @@ export function createProjectActions() {
 
     mergeProjects(projects: ProjectRecord[]) {
       const catalog = useGatewayCatalogStore();
-      for (const project of projects) {
-        const index = catalog.projects.findIndex(
-          (item) => item.hostId === project.hostId && item.remotePath === project.remotePath,
-        );
-        if (index >= 0) catalog.projects[index] = project;
-        else catalog.projects.push(project);
+      const groups = new Map<string, ProjectRecord>();
+      for (const project of [...catalog.projects, ...projects]) {
+        const host = catalog.hosts.find((candidate) => candidate.id === project.hostId);
+        const remotePath = canonicalDirectoryPath(project.remotePath, host?.directoryAliases);
+        groups.set(JSON.stringify([project.hostId, remotePath]), {
+          ...project,
+          remotePath,
+          name:
+            remotePath === project.remotePath
+              ? project.name
+              : (remotePath.split("/").filter(Boolean).at(-1) ?? "root"),
+        });
       }
+      catalog.projects = [...groups.values()];
     },
 
     ensureSelectedProject() {

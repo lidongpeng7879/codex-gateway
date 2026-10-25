@@ -23,6 +23,7 @@ function normalizeHost(input: HostCreateInput, id = nextId(currentGatewayMemoryS
     privateKey: input.privateKey ?? null,
     password: input.password ?? null,
     proxyUrl: trimmedOrNull(input.proxyUrl),
+    directoryAliases: structuredClone(input.directoryAliases ?? []),
     hasPassword: Boolean(input.password),
     createdAt: existing?.createdAt ?? timestamp,
     updatedAt: timestamp,

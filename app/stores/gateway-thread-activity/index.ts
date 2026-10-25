@@ -9,6 +9,8 @@ import type {
 import { pinnedKey, threadRecency } from "../gateway/thread-utils/identity";
 import { firstNonEmptyString, trimmedOrNull } from "~~/shared/utils/strings";
 import { isAppServerSubAgentThread } from "~~/shared/runtime/app-server";
+import { canonicalDirectoryPath, threadWorkspaceCwd } from "~~/shared/directory-aliases";
+import { useGatewayCatalogStore } from "@/stores/gateway-catalog";
 
 export interface ThreadActivitySummary {
   hostId: number;
@@ -64,15 +66,19 @@ export const useGatewayThreadActivityStore = defineStore("gateway-thread-activit
     records: ThreadActivityMetadata[],
     projects: ProjectRecord[],
   ) {
+    const aliases = useGatewayCatalogStore().hosts.find(
+      (host) => host.id === hostId,
+    )?.directoryAliases;
     for (const record of records) {
+      const cwd = record.cwd === null ? null : canonicalDirectoryPath(record.cwd, aliases);
       const project = projects.find(
-        (candidate) => candidate.hostId === hostId && candidate.remotePath === record.cwd,
+        (candidate) => candidate.hostId === hostId && candidate.remotePath === cwd,
       );
       upsertSummary({
         hostId,
         threadId: record.id,
         title: firstNonEmptyString([record.title, record.name, record.preview]) ?? record.id,
-        cwd: stringOrNull(record.cwd),
+        cwd,
         projectName: project?.name ?? null,
         parentThreadId: stringOrNull(record.parentThreadId),
         agentNickname: stringOrNull(record.agentNickname),
@@ -164,7 +170,8 @@ function summaryFromGatewayThread(
   projects: ProjectRecord[],
 ): ThreadActivitySummary {
   const project = projects.find(
-    (candidate) => candidate.remotePath === thread.cwd && candidate.hostId === thread.hostId,
+    (candidate) =>
+      candidate.remotePath === threadWorkspaceCwd(thread) && candidate.hostId === thread.hostId,
   );
   return summaryFromThread(thread.hostId, thread, project, thread.title);
 }
@@ -174,8 +181,12 @@ function summaryFromAppServerThread(
   thread: AppServerThread,
   projects: ProjectRecord[],
 ): ThreadActivitySummary {
+  const aliases = useGatewayCatalogStore().hosts.find(
+    (host) => host.id === hostId,
+  )?.directoryAliases;
+  const workspaceCwd = canonicalDirectoryPath(thread.cwd, aliases);
   const project = projects.find(
-    (candidate) => candidate.hostId === hostId && candidate.remotePath === thread.cwd,
+    (candidate) => candidate.hostId === hostId && candidate.remotePath === workspaceCwd,
   );
   return summaryFromThread(hostId, thread, project, null);
 }
@@ -202,11 +213,15 @@ function summaryFromThread(
   const parentThreadId = stringOrNull(thread.parentThreadId);
   const agentNickname = stringOrNull(thread.agentNickname);
   const agentRole = stringOrNull(thread.agentRole);
+  const sourceCwd = threadWorkspaceCwd(thread);
+  const aliases = useGatewayCatalogStore().hosts.find(
+    (host) => host.id === hostId,
+  )?.directoryAliases;
   return {
     hostId,
     threadId: thread.id,
     title: firstNonEmptyString([gatewayTitle, thread.name, thread.preview]) ?? thread.id,
-    cwd: stringOrNull(thread.cwd),
+    cwd: sourceCwd === null ? null : canonicalDirectoryPath(sourceCwd, aliases),
     projectName: project?.name ?? null,
     parentThreadId,
     agentNickname,

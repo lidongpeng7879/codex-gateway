@@ -3,6 +3,7 @@ import type { SFTPWrapper, Stats } from "ssh2";
 import type { FileReference, HostRecord } from "~~/shared/types";
 import { threadMetadataStore } from "../state/thread-metadata";
 import { sshConnections } from "../infra/host-services";
+import { canonicalDirectoryPath } from "~~/shared/directory-aliases";
 
 export const MAX_FILE_REFERENCES = 10;
 
@@ -31,7 +32,7 @@ export async function validateProjectFileReferences(
     ).values(),
   ];
   const sftp = await sshConnections.sftp(host);
-  const root = await realpath(sftp, cwd);
+  const root = await realpath(sftp, canonicalDirectoryPath(cwd, host.directoryAliases));
 
   await Promise.all(
     normalized.map(async (reference) => {

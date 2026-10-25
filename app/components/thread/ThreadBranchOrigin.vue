@@ -3,6 +3,7 @@ import { GitBranchIcon } from "@lucide/vue";
 import { Button } from "@codex-gateway/ui/button";
 import { useGatewayThreadViewStore } from "@/stores/gateway-thread-view";
 import type { GatewayThread } from "~~/shared/types";
+import { threadWorkspaceCwd } from "~~/shared/directory-aliases";
 defineProps<{ thread: GatewayThread }>();
 const { t } = useI18n();
 const views = useGatewayThreadViewStore();
@@ -22,7 +23,7 @@ const views = useGatewayThreadViewStore();
       @click="
         views.openThread(thread.forkedFromId!, {
           hostId: thread.hostId,
-          cwd: thread.cwd,
+          cwd: threadWorkspaceCwd(thread),
           replaceRoute: false,
         })
       "

@@ -13,6 +13,9 @@ import { recordAcceptedUserMessage } from "./accepted-user-message";
 import { sendWithUploadedFiles } from "./thread-attachments";
 import type { AgentRpcClient } from "../agent/provider-adapter";
 import { withThreadCommandQueue } from "./thread-command-queue";
+import { canonicalDirectoryPath } from "~~/shared/directory-aliases";
+import { hostDirectoryAliases } from "../state/directory-aliases";
+import { parseThreadReadResult } from "~~/shared/runtime/app-server";
 
 export class ThreadTurnCommandService {
   constructor(
@@ -34,11 +37,33 @@ export class ThreadTurnCommandService {
       const result = await controller.enqueue(() =>
         withThreadCommandQueue(host.id, threadId, async () => {
           await dispatch?.validate(controller.client);
+          // A directory alias is an explicit persisted user choice. Resolve it from Codex's
+          // source metadata, never from an arbitrary browser cwd hint. This also covers revisions.
+          let workspaceCwd: string | undefined;
+          const aliases = hostDirectoryAliases(host.id);
+          if (aliases.length > 0) {
+            const { thread } = await controller.client.request(
+              "thread/read",
+              { threadId, includeTurns: false },
+              120_000,
+              parseThreadReadResult,
+            );
+            const resolved = canonicalDirectoryPath(thread.cwd, aliases);
+            if (resolved !== thread.cwd) workspaceCwd = resolved;
+          }
           return sendWithUploadedFiles(controller.client, host.id, threadId, input.files, () => {
             const params =
               input.originalInput === undefined
-                ? buildTurnStartParams(threadId, clientUserMessageId, input)
-                : { threadId, clientUserMessageId, input: input.originalInput };
+                ? buildTurnStartParams(threadId, clientUserMessageId, {
+                    ...input,
+                    cwd: workspaceCwd ?? input.cwd,
+                  })
+                : {
+                    threadId,
+                    clientUserMessageId,
+                    input: input.originalInput,
+                    ...(workspaceCwd === undefined ? {} : { cwd: workspaceCwd }),
+                  };
             const pending = controller.client.request(
               "turn/start",
               params,

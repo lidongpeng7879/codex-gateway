@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { threadWorkspaceCwd } from "~~/shared/directory-aliases";
 import { Loader2Icon } from "@lucide/vue";
 import { computed } from "vue";
 import type { ThreadTimelineTurn } from "~~/shared/types";
@@ -36,7 +37,7 @@ const threadStatus = computed(
       :turns="turns"
       :host-id="panel.hostId"
       :project-id="null"
-      :workspace-root="preview?.currentThread?.cwd ?? null"
+      :workspace-root="threadWorkspaceCwd(preview?.currentThread)"
       :loading="Boolean(preview?.loading)"
       :loading-older="false"
       :oldest-timeline-cursor="null"
